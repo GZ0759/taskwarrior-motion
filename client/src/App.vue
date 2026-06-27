@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import { useKeyboard } from '@/composables/useKeyboard'
+import { useTimeTracking } from '@/composables/useTimeTracking'
 import TaskList from '@/components/TaskList.vue'
 import TaskForm from '@/components/TaskForm.vue'
 import KanbanView from '@/views/KanbanView.vue'
@@ -12,6 +13,7 @@ import type { Task, CreateTaskRequest } from '@/types/task'
 
 const store = useTaskStore()
 const { isDark, toggleTheme } = useTheme()
+const { activeTask: trackingTask, isTracking, formattedTime, toggleTracking } = useTimeTracking()
 
 const showForm = ref(false)
 const editingTask = ref<Task | null>(null)
@@ -97,6 +99,25 @@ function cancelForm() {
   showForm.value = false
   editingTask.value = null
 }
+
+function handleToggleTimer(uuid: string) {
+  const task = store.tasks.find((t) => t.uuid === uuid)
+  if (task) {
+    toggleTracking(task)
+  }
+}
+
+async function handleBulkComplete(uuids: string[]) {
+  for (const uuid of uuids) {
+    await store.completeTask(uuid)
+  }
+}
+
+async function handleBulkDelete(uuids: string[]) {
+  for (const uuid of uuids) {
+    await store.deleteTask(uuid)
+  }
+}
 </script>
 
 <template>
@@ -108,6 +129,19 @@ function cancelForm() {
       <div class="flex items-center justify-between">
         <h1 class="text-xl font-bold">taskwarrior-motion</h1>
         <div class="flex items-center gap-4">
+          <!-- Timer Display -->
+          <div
+            v-if="isTracking && trackingTask"
+            class="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg"
+          >
+            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span class="text-sm text-green-700 dark:text-green-300 font-medium">
+              {{ formattedTime }}
+            </span>
+            <span class="text-sm text-green-600 dark:text-green-400 truncate max-w-[200px]">
+              {{ trackingTask.description }}
+            </span>
+          </div>
           <button
             class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             @click="toggleTheme"
@@ -277,9 +311,13 @@ function cancelForm() {
           :active-task-uuid="
             activeTaskIndex >= 0 ? store.filteredTasks[activeTaskIndex]?.uuid : undefined
           "
+          :tracking-uuid="trackingTask?.uuid"
           @complete="store.completeTask"
           @delete="handleDelete"
           @edit="handleEdit"
+          @toggle-timer="handleToggleTimer"
+          @bulk-complete="handleBulkComplete"
+          @bulk-delete="handleBulkDelete"
         />
 
         <!-- Kanban View -->

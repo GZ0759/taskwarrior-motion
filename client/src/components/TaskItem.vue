@@ -4,12 +4,14 @@ import type { Task } from '@/types/task'
 defineProps<{
   task: Task
   isActive?: boolean
+  isTracking?: boolean
 }>()
 
 const emit = defineEmits<{
   complete: [uuid: string]
   delete: [uuid: string]
   edit: [task: Task]
+  toggleTimer: [uuid: string]
 }>()
 
 function getPriorityColor(priority?: string) {
@@ -83,6 +85,40 @@ function formatDate(date?: string) {
     <div
       class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
     >
+      <button
+        v-if="task.status === 'pending'"
+        class="timer-btn p-1.5 rounded-lg"
+        :class="
+          isTracking
+            ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+            : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+        "
+        @click="emit('toggleTimer', task.uuid)"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            v-if="isTracking"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+          <path
+            v-else
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+          />
+          <path
+            v-if="!isTracking"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      </button>
       <button
         class="edit-btn p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
         @click="emit('edit', task)"

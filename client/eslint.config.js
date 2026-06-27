@@ -24,6 +24,11 @@ export default [
         KeyboardEvent: 'readonly',
         HTMLInputElement: 'readonly',
         matchMedia: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        ReturnType: 'readonly',
       },
     },
     plugins: {
@@ -53,6 +58,11 @@ export default [
         KeyboardEvent: 'readonly',
         HTMLInputElement: 'readonly',
         matchMedia: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        ReturnType: 'readonly',
       },
     },
     plugins: {
