@@ -8,6 +8,29 @@
 
 ---
 
+## 已确认的关键决策
+
+| 决策项 | 确认结果 | 影响 |
+|--------|----------|------|
+| taskwarrior 版本 | **已安装 3.x (3.4.2)** | 需验证 taskchampion 后端的 `task export` JSON 格式，实现时做字段适配 |
+| 部署方式 | **仅本地使用** | 无需 Nginx/生产部署，Rust 后端仅需处理 CORS 为 localhost |
+| 看板拖拽 | **暂不实现** | 看板用按钮切换状态，后续再加拖拽 |
+| 音效来源 | **开源免费音效** | 从 Freesound/Pixabay/Mixkit/Kenney 获取 CC0 音效 |
+
+---
+
+## 前置依赖
+
+| 工具 | 状态 | 版本 | 安装方式 |
+|------|------|------|----------|
+| Node.js | ✅ 已安装 | v25.9.0 | — |
+| pnpm | ✅ 已安装 | 10.33.2 | — |
+| taskwarrior | ✅ 已安装 | 3.4.2 | /opt/homebrew/bin/task |
+| Rust/Cargo | ✅ 已安装 | 1.96.0 | rustup |
+| Homebrew | ✅ 已安装 | 6.0.5 | — |
+
+---
+
 ## 参考项目
 
 本项目参考以下成熟项目的设计思路：
@@ -99,7 +122,7 @@ taskchampion.sqlite3
 
 #### 2.1 看板视图
 - 五列：Inbox/Backlog/InProgress/OnHold/Done
-- 卡片拖拽（可选）
+- 按钮切换状态（拖拽暂不实现，后续迭代）
 - 移动端标签切换
 
 #### 2.2 日历视图
@@ -179,22 +202,28 @@ taskchampion.sqlite3
 
 ## 开发任务
 
+> **任务依赖关系**：任务 1 → 任务 2 → 任务 3 → 任务 4/5/6（可并行） → 任务 7
+
 ### 任务 1：项目初始化
 
 **目标**：搭建项目基础结构
+**前置**：无
+**验收**：`make dev` 可同时启动前后端，浏览器访问 http://localhost:3000 有页面
 
 **步骤**：
-1. 初始化 Rust 项目（cargo init）
-2. 初始化 Vue 项目（pnpm create vite）
-3. 安装依赖
-4. 配置 ESLint + Prettier
-5. 配置 Tailwind CSS v4
-6. 配置 Storybook
-7. 创建 Makefile
+1. 运行 `task export` 验证 taskwarrior 3.4.2 的 JSON 输出格式，确认字段与 api-spec.md 一致
+2. 初始化 Rust 项目（`cargo init server`）
+3. 配置 Cargo.toml 依赖：axum 0.7, tokio 1 (features: full), serde 1 (features: derive), serde_json 1, tower-http 0.5 (features: cors), uuid 1 (features: v4)
+4. 初始化 Vue 项目（`pnpm create vite client -- --template vue-ts`）
+5. 安装前端依赖：vue, pinia, vue-router, gsap, howler, axios
+6. 安装 Tailwind CSS v4（`pnpm add tailwindcss @tailwindcss/vite`），在 vite.config.ts 中添加 `@tailwindcss/vite` 插件，在 `src/style.css` 中添加 `@import "tailwindcss"`
+7. 复制 `.eslintrc.cjs` 和 `.prettierrc` 到 `client/` 目录（根目录保留），安装对应 ESLint/Prettier 依赖
+8. 配置 Vite 开发代理（`/api` → `http://localhost:3001`）
+9. 验证 `make dev` 可同时启动前后端
 
 **产出**：
-- server/ 目录结构
-- client/ 目录结构
+- server/ 目录结构 + Cargo.toml
+- client/ 目录结构 + package.json + vite.config.ts
 - 配置文件
 
 ---
@@ -202,13 +231,16 @@ taskchampion.sqlite3
 ### 任务 2：Rust 后端实现
 
 **目标**：实现 Taskwarrior CLI 封装和 API 服务
+**前置**：任务 1 完成
+**验收**：`cargo run` 启动后端，`curl http://localhost:3001/api/tasks` 返回 JSON
 
 **步骤**：
-1. 实现 TaskwarriorClient 封装
-2. 实现 REST API 路由
-3. 实现错误处理
-4. 实现 CORS 中间件
-5. 编写单元测试
+1. 实现 `models.rs` — Task 结构体（字段以任务 1 中 `task export` 实际输出为准）
+2. 实现 `errors.rs` — AppError 枚举 + IntoResponse 实现（INVALID_INPUT/NOT_FOUND/INTERNAL_ERROR/TASK_ERROR）
+3. 实现 `taskwarrior.rs` — TaskwarriorClient（export, add, modify, delete, done, start, stop, undo），使用 `tokio::process::Command` 异步执行，写操作加 `tokio::sync::Mutex` 防止并发冲突
+4. 实现 `routes.rs` — 所有 8 个 API 端点
+5. 实现 `main.rs` — Axum 服务启动 + CORS（tower-http，允许 localhost:3000）+ 路由挂载
+6. 编写单元测试
 
 **产出**：
 - server/src/taskwarrior.rs
@@ -226,6 +258,8 @@ taskchampion.sqlite3
 ### 任务 3：Vue 前端核心功能
 
 **目标**：实现任务 CRUD、列表视图、搜索过滤
+**前置**：任务 2 完成（后端 API 可用）
+**验收**：浏览器可添加/编辑/删除/完成任务，搜索过滤可用，暗色模式可切换
 
 **步骤**：
 1. 实现 TypeScript 类型定义
@@ -235,8 +269,8 @@ taskchampion.sqlite3
 5. 实现 TaskList 组件
 6. 实现 TaskForm 组件
 7. 实现 App.vue 主组件
-8. 实现暗色模式
-9. 实现键盘快捷键
+8. 实现 `composables/useTheme.ts` — 暗色模式（系统主题跟随 + 手动切换 + localStorage 持久化）
+9. 实现 `composables/useKeyboard.ts` — 键盘快捷键（需检查 e.target 避免在输入框中触发）
 
 **产出**：
 - client/src/types/task.ts
@@ -246,6 +280,8 @@ taskchampion.sqlite3
 - client/src/components/TaskList.vue
 - client/src/components/TaskForm.vue
 - client/src/App.vue
+- client/src/composables/useTheme.ts
+- client/src/composables/useKeyboard.ts
 
 **参考**：
 - taskwarrior-webui 的 client/src/components/
@@ -256,11 +292,13 @@ taskchampion.sqlite3
 ### 任务 4：Vue 前端视图功能
 
 **目标**：实现看板、日历、完成视图
+**前置**：任务 3 完成
+**验收**：三种视图可正常切换和显示，看板按钮可切换任务状态
 
 **步骤**：
-1. 实现看板视图（KanbanView.vue）
-2. 实现日历视图（CalendarView.vue）
-3. 实现完成视图（DoneView.vue）
+1. 实现看板视图（KanbanView.vue）— 五列看板，按钮切换状态（拖拽暂不实现）
+2. 实现日历视图（CalendarView.vue）— 月/周/日三种视图
+3. 实现完成视图（DoneView.vue）— 已完成任务列表，可配置天数
 4. 实现视图切换
 
 **产出**：
@@ -277,6 +315,8 @@ taskchampion.sqlite3
 ### 任务 5：Vue 前端高级功能
 
 **目标**：实现标签/项目、优先级、依赖、重复、批量、撤销、时间追踪、上下文
+**前置**：任务 3 完成
+**验收**：自动补全可用，优先级颜色正确，批量操作和撤销功能正常
 
 **步骤**：
 1. 实现标签/项目自动补全
@@ -289,9 +329,14 @@ taskchampion.sqlite3
 8. 实现上下文管理
 
 **产出**：
-- client/src/composables/useAutocomplete.ts
-- client/src/composables/useTimeTracking.ts
-- client/src/composables/useContext.ts
+- client/src/composables/useAutocomplete.ts — 标签/项目自动补全
+- client/src/composables/useTimeTracking.ts — 时间追踪（start/stop）
+- client/src/composables/useContext.ts — 上下文管理（持久化过滤器）
+- 优先级颜色编码（集成到 TaskItem 组件）
+- 依赖关系显示（集成到 TaskItem 组件）
+- 重复任务支持（集成到 TaskForm 组件）
+- 批量操作（集成到 TaskList 组件）
+- 撤销操作（集成到 Pinia store）
 
 **参考**：
 - taskwarrior-web-portal 的功能实现
@@ -301,6 +346,8 @@ taskchampion.sqlite3
 ### 任务 6：动画音效实现
 
 **目标**：实现完成/删除/添加动画和音效
+**前置**：任务 3 完成
+**验收**：完成/删除/添加任务时有动画和音效，可关闭
 
 **步骤**：
 1. 准备音效文件（complete.mp3, delete.mp3, add.mp3）
@@ -323,21 +370,20 @@ taskchampion.sqlite3
 
 ### 任务 7：测试和文档
 
-**目标**：编写测试和文档
+**目标**：编写测试和完善文档
+**前置**：任务 4/5/6 全部完成
+**验收**：`make test` 全部通过，`make lint` 0 warnings，覆盖率 ≥ 90%
 
 **步骤**：
-1. 编写 Rust 单元测试（覆盖率 90%+）
-2. 编写 Vue 单元测试（覆盖率 90%+）
-3. 编写 Storybook 文档
-4. 编写 README
-5. 编写 API 文档
+1. 编写 Rust 单元测试（覆盖率 90%+，使用 `cargo tarpaulin`）
+2. 编写 Vue 单元测试（Vitest + Vue Test Utils，覆盖率 90%+）
+3. 完善 README（安装/使用/键盘快捷键说明）
+4. 最终 `make lint` 0 warnings，`make fmt` 无 diff
 
 **产出**：
 - server/tests/
 - client/tests/
-- client/.storybook/
-- README.md
-- docs/specs/api-spec.md
+- 完善的 README.md
 
 ---
 
@@ -365,9 +411,8 @@ taskchampion.sqlite3
 - 无 flaky tests
 
 ### 文档质量
-- README：完整、清晰
-- API 文档：OpenAPI 规范
-- 组件文档：Storybook
+- README：完整、清晰，包含安装/使用/键盘快捷键说明
+- API 文档：docs/specs/api-spec.md
 
 ---
 
@@ -402,8 +447,6 @@ taskwarrior-motion/
 │   ├── package.json                       # 前端依赖
 │   ├── vite.config.ts                     # Vite 配置
 │   ├── tsconfig.json                      # TypeScript 配置
-│   ├── tailwind.config.ts                 # Tailwind 配置
-│   ├── .storybook/                        # Storybook 配置
 │   ├── src/
 │   │   ├── main.ts                        # 入口
 │   │   ├── App.vue                        # 根组件
@@ -451,22 +494,43 @@ make run
 ## 注意事项
 
 ### 安全性
-- 所有用户输入需要验证
-- 防止命令注入
-- CORS 配置
+- 所有用户输入需要验证，长度限制 4KB
+- 防止命令注入：使用参数数组而非字符串拼接
+- CORS 配置：仅允许 localhost:3000
 
 ### 性能
-- 前端懒加载
-- 后端异步处理
-- 缓存策略
+- 前端懒加载（路由级别）
+- 后端异步处理（tokio::process::Command）
+- `task export` 结果做内存缓存，写操作后主动失效
+- 大量任务时考虑虚拟滚动
 
 ### 可维护性
 - 模块化设计
 - 清晰的代码结构
 - 完善的文档
 
+### 风险点
+- taskwarrior 3.x 的 `task export` JSON 格式需在开发前验证
+- 并发写操作需加互斥锁（tokio::sync::Mutex）
+- 后端测试依赖真实 taskwarrior，测试环境需安装
+
+---
+
+## 完成条件
+
+1. **后端 API 完整可用** — `make test-server` 全部通过，8 个 API 端点均可通过 curl 正常调用
+2. **前端核心功能完整** — 任务 CRUD、列表视图、搜索过滤、暗色模式、键盘快捷键均可用
+3. **视图功能完整** — 看板视图（按钮切换状态）、日历视图、完成视图均可正常显示和交互
+4. **动画与音效正常** — 完成/删除/添加三种动画流畅运行，音效正常播放
+5. **测试覆盖率达标** — 总体覆盖率 ≥ 90%
+6. **代码质量达标** — `make lint` 0 warnings
+7. **一键启动可用** — `make install && make dev` 可成功启动
+8. **taskwarrior 3.x 兼容** — 在 3.4.2 环境下所有功能正常工作
+
 ---
 
 ## 更新日志
 
 - 2026-06-27：创建初始计划文档
+- 2026-06-27：评审补充 — 添加前置依赖、关键决策、细化任务步骤、简化测试策略、添加完成条件
+- 2026-06-27：优化 — 添加任务依赖关系、验收检查点、补充任务 5 产出、修正任务 1 步骤歧义
