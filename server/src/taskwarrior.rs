@@ -16,10 +16,11 @@ impl TaskwarriorClient {
     }
 
     pub async fn export(&self, filter: Option<&str>) -> Result<Vec<Task>, AppError> {
-        let mut args = vec!["export"];
+        let mut args = Vec::new();
         if let Some(f) = filter {
             args.push(f);
         }
+        args.push("export");
 
         let output = Command::new("task")
             .args(&args)
