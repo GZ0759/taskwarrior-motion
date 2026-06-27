@@ -5,6 +5,7 @@ import { useTheme } from '@/composables/useTheme'
 import { useSound } from '@/composables/useSound'
 import { useTimeTracking } from '@/composables/useTimeTracking'
 import { getCardStyle } from '@/utils/card-styles'
+import { formatDue, isOverdue } from '@/utils/date'
 import type { Task, UpdateTaskRequest } from '@/types/task'
 
 const props = defineProps<{
@@ -34,32 +35,7 @@ const removing = ref(false)
 // 时间追踪
 const isTracking = computed(() => activeTask.value?.uuid === props.task.uuid)
 
-// 日期格式化
-function formatDue(d: string | null | undefined): string | null {
-  if (!d) return null
-  // due 格式: "20260628T000000Z" 或 ISO 格式
-  const dateStr = d.length === 16
-    ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`
-    : d.split('T')[0]
-  const date = new Date(dateStr + 'T00:00:00')
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  const diff = Math.round((date.getTime() - now.getTime()) / 86400000)
-  if (diff === 0) return '今天'
-  if (diff === 1) return '明天'
-  if (diff < 0) return `逾期${Math.abs(diff)}天`
-  if (diff <= 7) return `${diff}天后`
-  return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
-}
-
-function isOverdue(d: string | null | undefined): boolean {
-  if (!d) return false
-  const dateStr = d.length === 16
-    ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`
-    : d.split('T')[0]
-  return new Date(dateStr + 'T00:00:00') < new Date(new Date().setHours(0, 0, 0, 0))
-}
-
+// 日期
 const overdue = computed(() => isOverdue(props.task.due))
 const dueLabel = computed(() => formatDue(props.task.due))
 

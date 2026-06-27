@@ -2,6 +2,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
+import { parseTaskDate } from '@/utils/date'
 import type { Task } from '@/types/task'
 
 const store = useTaskStore()
