@@ -90,6 +90,7 @@ pub struct ProjectStats {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Stats {
     pub heatmap: HashMap<String, u32>,
     pub projects: HashMap<String, ProjectStats>,

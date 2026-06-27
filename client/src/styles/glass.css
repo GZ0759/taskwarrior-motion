@@ -61,15 +61,3 @@
   background: rgba(0,0,0,0.70);
   backdrop-filter: blur(14px);
 }
-
-/* 项目选择器背景 */
-.glass-picker {
-  background: rgba(0,0,0,0.22);
-  border-radius: 12px;
-}
-
-/* 标签输入区 */
-.glass-tag-input {
-  background: rgba(255,255,255,0.10);
-  border-radius: 12px;
-}

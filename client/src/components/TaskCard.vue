@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Check, ChevronDown, ChevronUp, Play, Pause } from '@lucide/vue'
+import { Check, ChevronDown, Play, Pause } from '@lucide/vue'
 import { useTheme } from '@/composables/useTheme'
 import { useSound } from '@/composables/useSound'
 import { useTimeTracking } from '@/composables/useTimeTracking'
