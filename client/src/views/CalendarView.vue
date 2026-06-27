@@ -198,8 +198,8 @@ const emit = defineEmits<{
         class="grid grid-cols-7 sticky top-0 z-10"
         :style="{
           borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
-          background: isDark ? 'rgba(20,8,50,0.95)' : 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(8px)',
+          background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.80)',
+          backdropFilter: 'blur(12px)',
         }"
       >
         <div
@@ -215,12 +215,12 @@ const emit = defineEmits<{
         <div
           v-for="(day, index) in calendarDays"
           :key="index"
-          class="min-h-[90px] p-2"
+          class="min-h-[90px] p-2 transition-colors"
           :style="{
             borderRight: (index % 7 !== 6) ? `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}` : 'none',
             borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`,
             background: isToday(day.date)
-              ? (isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)')
+              ? (isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)')
               : (!day.isCurrentMonth ? (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)') : 'transparent'),
           }"
         >
@@ -237,7 +237,7 @@ const emit = defineEmits<{
             <div
               v-for="task in day.tasks.slice(0, 3)"
               :key="task.uuid"
-              class="text-[10px] px-1.5 py-0.5 rounded-md truncate cursor-pointer font-medium"
+              class="text-[10px] px-1.5 py-0.5 rounded-md truncate cursor-pointer font-medium transition-colors"
               :style="{
                 background: task.priority === 'H'
                   ? (isDark ? 'rgba(239,68,68,0.20)' : 'rgba(239,68,68,0.10)')
@@ -266,11 +266,11 @@ const emit = defineEmits<{
         <div
           v-for="(day, index) in weekDays"
           :key="index"
-          class="p-3 min-h-[200px]"
+          class="p-3 min-h-[200px] transition-colors"
           :style="{
             borderRight: index < 6 ? `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}` : 'none',
             background: day.isToday
-              ? (isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)')
+              ? (isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)')
               : 'transparent',
           }"
         >
