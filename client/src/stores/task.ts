@@ -178,6 +178,7 @@ export const useTaskStore = defineStore('task', () => {
     updateTask,
     deleteTask,
     completeTask,
+    uncompleteTask,
     startTask,
     stopTask,
     undo,
