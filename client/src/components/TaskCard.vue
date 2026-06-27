@@ -47,6 +47,7 @@ const editProject = ref(props.task.project ?? '')
 const editTags = ref<string[]>(props.task.tags ?? [])
 const editPriority = ref(props.task.priority ?? 'M')
 const editDue = ref(props.task.due ?? '')
+const editWait = ref(props.task.wait ?? '')
 
 // 日期格式化
 function formatDue(d: string | null | undefined): string | null {
@@ -99,6 +100,7 @@ function saveDetails() {
     tags: editTags.value.length > 0 ? editTags.value : undefined,
     priority: editPriority.value as 'H' | 'M' | 'L',
     due: editDue.value || undefined,
+    wait: editWait.value || undefined,
   })
   expanded.value = false
 }
@@ -110,6 +112,7 @@ function cancelEdit() {
   editTags.value = props.task.tags ?? []
   editPriority.value = props.task.priority ?? 'M'
   editDue.value = props.task.due ?? ''
+  editWait.value = props.task.wait ?? ''
 }
 
 // 删除
@@ -230,6 +233,22 @@ const priorityLabels: Record<string, string> = { H: '紧急', M: '普通', L: '�
                 class="w-full rounded-xl px-3 py-1.5 text-xs font-medium text-white outline-none focus:ring-2 focus:ring-white/30"
                 :style="{ background: 'rgba(255,255,255,0.12)' }"
               />
+            </div>
+
+            <!-- 等待日期（暂停到指定日期） -->
+            <div>
+              <label class="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                <Calendar :size="8" /> 暂停到
+              </label>
+              <input
+                v-model="editWait"
+                type="date"
+                class="w-full rounded-xl px-3 py-1.5 text-xs font-medium text-white outline-none focus:ring-2 focus:ring-white/30"
+                :style="{ background: 'rgba(255,255,255,0.12)' }"
+              />
+              <p class="text-[9px] mt-1" :style="{ color: 'var(--txt-subtle)' }">
+                设置后任务会进入「暂停」列，到日期后恢复
+              </p>
             </div>
 
             <!-- 项目选择器 -->

@@ -121,7 +121,7 @@ const emit = defineEmits<{
             <div class="flex gap-1.5 mt-2">
               <button
                 v-if="column.key !== 'in-progress' && task.status === 'pending'"
-                class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors"
+                class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors cursor-pointer"
                 :style="{
                   background: isDark ? 'rgba(59,130,246,0.20)' : 'rgba(59,130,246,0.10)',
                   color: isDark ? '#93c5fd' : '#3b82f6',
@@ -130,7 +130,7 @@ const emit = defineEmits<{
               >开始</button>
               <button
                 v-if="column.key !== 'done' && task.status === 'pending'"
-                class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors"
+                class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors cursor-pointer"
                 :style="{
                   background: isDark ? 'rgba(34,197,94,0.20)' : 'rgba(34,197,94,0.10)',
                   color: isDark ? '#86efac' : '#22c55e',
@@ -138,7 +138,7 @@ const emit = defineEmits<{
                 @click="moveToColumn(task, 'done')"
               >完成</button>
               <button
-                class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors"
+                class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors cursor-pointer"
                 :style="{
                   background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                   color: 'var(--txt-muted)',
