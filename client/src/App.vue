@@ -5,6 +5,9 @@ import { useTheme } from '@/composables/useTheme'
 import { useKeyboard } from '@/composables/useKeyboard'
 import TaskList from '@/components/TaskList.vue'
 import TaskForm from '@/components/TaskForm.vue'
+import KanbanView from '@/views/KanbanView.vue'
+import CalendarView from '@/views/CalendarView.vue'
+import DoneView from '@/views/DoneView.vue'
 import type { Task, CreateTaskRequest } from '@/types/task'
 
 const store = useTaskStore()
@@ -15,7 +18,9 @@ const editingTask = ref<Task | null>(null)
 const activeTaskIndex = ref(-1)
 const showHelp = ref(false)
 
-const currentView = ref<'next' | 'ready' | 'agenda' | 'forecast'>('next')
+type ViewType = 'next' | 'ready' | 'agenda' | 'forecast' | 'kanban' | 'calendar' | 'done'
+
+const currentView = ref<ViewType>('next')
 
 useKeyboard({
   onNewTask: () => {
@@ -154,7 +159,15 @@ function cancelForm() {
       >
         <nav class="space-y-2">
           <button
-            v-for="view in ['next', 'ready', 'agenda', 'forecast'] as const"
+            v-for="view in [
+              'next',
+              'ready',
+              'agenda',
+              'forecast',
+              'kanban',
+              'calendar',
+              'done',
+            ] as const"
             :key="view"
             class="w-full text-left px-3 py-2 rounded-lg transition-colors"
             :class="
@@ -258,6 +271,7 @@ function cancelForm() {
 
         <!-- Task List -->
         <TaskList
+          v-if="['next', 'ready', 'agenda', 'forecast'].includes(currentView)"
           :tasks="store.filteredTasks"
           :loading="store.loading"
           :active-task-uuid="
@@ -267,6 +281,15 @@ function cancelForm() {
           @delete="handleDelete"
           @edit="handleEdit"
         />
+
+        <!-- Kanban View -->
+        <KanbanView v-else-if="currentView === 'kanban'" @edit="handleEdit" />
+
+        <!-- Calendar View -->
+        <CalendarView v-else-if="currentView === 'calendar'" @edit="handleEdit" />
+
+        <!-- Done View -->
+        <DoneView v-else-if="currentView === 'done'" @edit="handleEdit" />
 
         <!-- Error Toast -->
         <div
