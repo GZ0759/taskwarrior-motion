@@ -80,7 +80,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div>
+  <div class="h-full flex flex-col min-h-0">
     <!-- 标题栏 -->
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-black" :style="{ color: 'var(--txt-primary)' }">日历</h2>
@@ -141,7 +141,7 @@ const emit = defineEmits<{
     <!-- 月视图 -->
     <div
       v-if="currentView === 'month'"
-      class="rounded-2xl overflow-hidden"
+      class="rounded-2xl overflow-y-auto flex-1 min-h-0"
       :style="{
         background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.30)',
         border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.50)'}`,

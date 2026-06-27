@@ -52,20 +52,21 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div>
-    <h2 class="text-lg font-black mb-4" :style="{ color: 'var(--txt-primary)' }">看板</h2>
+  <div class="h-full flex flex-col">
+    <h2 class="text-lg font-black mb-4 shrink-0" :style="{ color: 'var(--txt-primary)' }">看板</h2>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div class="flex-1 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 min-h-0">
       <div
         v-for="column in getColumnTasks"
         :key="column.key"
-        class="rounded-2xl p-4"
+        class="rounded-2xl p-4 flex flex-col min-h-0"
         :style="{
           background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.30)',
           border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.50)'}`,
         }"
       >
-        <div class="flex items-center justify-between mb-3">
+        <!-- 列头 -->
+        <div class="flex items-center justify-between mb-3 shrink-0">
           <h3 class="font-semibold text-sm" :style="{ color: 'var(--txt-primary)' }">
             {{ column.label }}
           </h3>
@@ -78,7 +79,8 @@ const emit = defineEmits<{
           >{{ column.tasks.length }}</span>
         </div>
 
-        <div class="space-y-2">
+        <!-- 任务列表（固定高度，内部滚动） -->
+        <div class="flex-1 overflow-y-auto space-y-2 min-h-0">
           <div
             v-for="task in column.tasks"
             :key="task.uuid"
@@ -113,27 +115,36 @@ const emit = defineEmits<{
                   >{{ task.project }}</span>
                 </div>
               </div>
+            </div>
 
-              <div class="flex gap-1 ml-2">
-                <button
-                  v-if="column.key !== 'in-progress' && task.status === 'pending'"
-                  class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors"
-                  :style="{
-                    background: isDark ? 'rgba(59,130,246,0.20)' : 'rgba(59,130,246,0.10)',
-                    color: isDark ? '#93c5fd' : '#3b82f6',
-                  }"
-                  @click="moveToColumn(task, 'in-progress')"
-                >开始</button>
-                <button
-                  v-if="column.key !== 'done' && task.status === 'pending'"
-                  class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors"
-                  :style="{
-                    background: isDark ? 'rgba(34,197,94,0.20)' : 'rgba(34,197,94,0.10)',
-                    color: isDark ? '#86efac' : '#22c55e',
-                  }"
-                  @click="moveToColumn(task, 'done')"
-                >完成</button>
-              </div>
+            <!-- 操作按钮 -->
+            <div class="flex gap-1.5 mt-2">
+              <button
+                v-if="column.key !== 'in-progress' && task.status === 'pending'"
+                class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors"
+                :style="{
+                  background: isDark ? 'rgba(59,130,246,0.20)' : 'rgba(59,130,246,0.10)',
+                  color: isDark ? '#93c5fd' : '#3b82f6',
+                }"
+                @click="moveToColumn(task, 'in-progress')"
+              >开始</button>
+              <button
+                v-if="column.key !== 'done' && task.status === 'pending'"
+                class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors"
+                :style="{
+                  background: isDark ? 'rgba(34,197,94,0.20)' : 'rgba(34,197,94,0.10)',
+                  color: isDark ? '#86efac' : '#22c55e',
+                }"
+                @click="moveToColumn(task, 'done')"
+              >完成</button>
+              <button
+                class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors"
+                :style="{
+                  background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                  color: 'var(--txt-muted)',
+                }"
+                @click="emit('edit', task)"
+              >编辑</button>
             </div>
           </div>
 

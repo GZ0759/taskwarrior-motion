@@ -240,7 +240,10 @@ function handleDeleteTag(name: string) {
         </div>
 
         <!-- 内容区 -->
-        <div class="flex-1 overflow-y-auto px-6 pt-4 pb-6">
+        <div
+          class="flex-1 px-6 pt-4 pb-6 min-h-0"
+          :class="(currentView === 'kanban' || currentView === 'calendar') ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'"
+        >
           <!-- 列表视图 -->
           <template v-if="currentView === 'next'">
             <!-- 添加任务 -->
