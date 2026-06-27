@@ -289,6 +289,7 @@ export const useTaskStore = defineStore('task', () => {
     fetchPendingTasks,
     fetchCompletedTasks,
     fetchCalendarTasks,
+    fetchCompletedOnDate,
     fetchStats,
     addTask,
     updateTask,
