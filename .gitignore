@@ -1,0 +1,127 @@
+# Rust
+server/target/
+server/Cargo.lock
+server/.cargo/
+
+# Node
+client/node_modules/
+client/dist/
+client/.vite/
+client/.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build
+build/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test
+coverage/
+*.coverage
+htmlcov/
+
+# Storybook
+client/storybook-static/
+
+# Temporary
+tmp/
+temp/
+.tmp/
+.temp/
+
+# Dependencies
+server/target/
+client/node_modules/
+
+# Lock files (optional)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# IDE specific
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build output
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Storybook
+storybook-static
+
+# Testing
+coverage
+*.lcov
+
+# Rust specific
+server/target/
+**/*.rs.bk
+*.pdb
+
+# Misc
+*.bak
+*.tmp
+*.temp
