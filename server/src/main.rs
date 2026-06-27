@@ -26,14 +26,14 @@ async fn main() {
         .route("/api/tasks", get(routes::get_tasks))
         .route("/api/tasks", post(routes::create_task))
         .route(
-            "/api/tasks/{uuid}",
+            "/api/tasks/:uuid",
             get(routes::get_task_by_uuid)
                 .put(routes::update_task)
                 .delete(routes::delete_task),
         )
-        .route("/api/tasks/{uuid}/done", post(routes::done_task))
-        .route("/api/tasks/{uuid}/start", post(routes::start_task))
-        .route("/api/tasks/{uuid}/stop", post(routes::stop_task))
+        .route("/api/tasks/:uuid/done", post(routes::done_task))
+        .route("/api/tasks/:uuid/start", post(routes::start_task))
+        .route("/api/tasks/:uuid/stop", post(routes::stop_task))
         .route("/api/undo", post(routes::undo_action))
         .layer(cors)
         .with_state(state);
