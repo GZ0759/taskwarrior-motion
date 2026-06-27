@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { Task } from '@/types/task'
+import { useAnimation } from '@/composables/useAnimation'
+import { useSound } from '@/composables/useSound'
 
 defineProps<{
   task: Task
@@ -13,6 +16,26 @@ const emit = defineEmits<{
   edit: [task: Task]
   toggleTimer: [uuid: string]
 }>()
+
+const { animateComplete, animateDelete } = useAnimation()
+const { playComplete, playDelete } = useSound()
+const taskRef = ref<HTMLElement>()
+
+async function handleComplete(uuid: string) {
+  if (taskRef.value) {
+    playComplete()
+    await animateComplete(taskRef.value)
+  }
+  emit('complete', uuid)
+}
+
+async function handleDelete(uuid: string) {
+  if (taskRef.value) {
+    playDelete()
+    await animateDelete(taskRef.value)
+  }
+  emit('delete', uuid)
+}
 
 function getPriorityColor(priority?: string) {
   switch (priority) {
@@ -35,12 +58,13 @@ function formatDate(date?: string) {
 
 <template>
   <div
+    ref="taskRef"
     class="task-item group flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
     :class="{ 'ring-2 ring-blue-500': isActive }"
   >
     <button
       class="complete-btn w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center hover:border-green-500 dark:hover:border-green-400 transition-colors"
-      @click="emit('complete', task.uuid)"
+      @click="handleComplete(task.uuid)"
     >
       <svg
         v-if="task.status === 'completed'"
@@ -134,7 +158,7 @@ function formatDate(date?: string) {
       </button>
       <button
         class="delete-btn p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400"
-        @click="emit('delete', task.uuid)"
+        @click="handleDelete(task.uuid)"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path

@@ -4,6 +4,7 @@ import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import { useKeyboard } from '@/composables/useKeyboard'
 import { useTimeTracking } from '@/composables/useTimeTracking'
+import { useSound } from '@/composables/useSound'
 import TaskList from '@/components/TaskList.vue'
 import TaskForm from '@/components/TaskForm.vue'
 import KanbanView from '@/views/KanbanView.vue'
@@ -14,6 +15,7 @@ import type { Task, CreateTaskRequest } from '@/types/task'
 const store = useTaskStore()
 const { isDark, toggleTheme } = useTheme()
 const { activeTask: trackingTask, isTracking, formattedTime, toggleTracking } = useTimeTracking()
+const { playAdd, soundEnabled, toggleSound } = useSound()
 
 const showForm = ref(false)
 const editingTask = ref<Task | null>(null)
@@ -72,6 +74,7 @@ function handleSubmit(data: CreateTaskRequest) {
   if (editingTask.value) {
     store.updateTask(editingTask.value.uuid, data)
   } else {
+    playAdd()
     store.addTask(data)
   }
   showForm.value = false
@@ -179,6 +182,39 @@ async function handleBulkDelete(uuids: string[]) {
                 stroke-linejoin="round"
                 stroke-width="2"
                 d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </button>
+          <button
+            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            @click="toggleSound"
+          >
+            <svg
+              v-if="soundEnabled"
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+              />
+            </svg>
+            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
               />
             </svg>
           </button>
