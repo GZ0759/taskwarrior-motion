@@ -112,7 +112,8 @@ export const useTaskStore = defineStore('task', () => {
     error.value = null
     try {
       await taskApi.createTask(task)
-      await fetchTasks()
+      await fetchPendingTasks()
+      await fetchStats()
     } catch (e) {
       error.value = (e as Error).message
       throw e
@@ -126,7 +127,8 @@ export const useTaskStore = defineStore('task', () => {
     error.value = null
     try {
       await taskApi.updateTask(uuid, task)
-      await fetchTasks()
+      await fetchPendingTasks()
+      await fetchStats()
     } catch (e) {
       error.value = (e as Error).message
       throw e
@@ -140,7 +142,8 @@ export const useTaskStore = defineStore('task', () => {
     error.value = null
     try {
       await taskApi.deleteTask(uuid)
-      await fetchTasks()
+      await fetchPendingTasks()
+      await fetchStats()
     } catch (e) {
       error.value = (e as Error).message
       throw e
@@ -154,7 +157,8 @@ export const useTaskStore = defineStore('task', () => {
     error.value = null
     try {
       await taskApi.doneTask(uuid)
-      await fetchTasks()
+      await fetchPendingTasks()
+      await fetchStats()
     } catch (e) {
       error.value = (e as Error).message
       throw e
@@ -168,7 +172,9 @@ export const useTaskStore = defineStore('task', () => {
     error.value = null
     try {
       await taskApi.uncompleteTask(uuid)
-      await fetchTasks()
+      await fetchPendingTasks()
+      await fetchCompletedTasks()
+      await fetchStats()
     } catch (e) {
       error.value = (e as Error).message
       throw e
