@@ -185,19 +185,22 @@ const emit = defineEmits<{
       </div>
     </div>
 
-    <!-- 月视图 -->
+    <!-- 日历内容 -->
     <div
-      v-if="currentView === 'month'"
       class="rounded-2xl overflow-y-auto flex-1 min-h-0"
       :style="{
         background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.30)',
         border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.50)'}`,
       }"
     >
-      <!-- 星期头部 -->
+      <!-- 星期头部（两种视图共用） -->
       <div
-        class="grid grid-cols-7"
-        :style="{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }"
+        class="grid grid-cols-7 sticky top-0 z-10"
+        :style="{
+          borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+          background: isDark ? 'rgba(20,8,50,0.95)' : 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(8px)',
+        }"
       >
         <div
           v-for="day in daysOfWeek"
@@ -207,8 +210,8 @@ const emit = defineEmits<{
         >{{ day }}</div>
       </div>
 
-      <!-- 日历格子 -->
-      <div class="grid grid-cols-7">
+      <!-- 月视图 -->
+      <div v-if="currentView === 'month'" class="grid grid-cols-7">
         <div
           v-for="(day, index) in calendarDays"
           :key="index"
@@ -257,18 +260,9 @@ const emit = defineEmits<{
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 周视图 -->
-    <div
-      v-else-if="currentView === 'week'"
-      class="rounded-2xl overflow-y-auto flex-1 min-h-0"
-      :style="{
-        background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.30)',
-        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.50)'}`,
-      }"
-    >
-      <div class="grid grid-cols-7 h-full">
+      <!-- 周视图 -->
+      <div v-else class="grid grid-cols-7 h-full">
         <div
           v-for="(day, index) in weekDays"
           :key="index"
@@ -288,7 +282,7 @@ const emit = defineEmits<{
                 : 'var(--txt-primary)',
             }"
           >
-            {{ daysOfWeek[index] }} {{ day.date.getDate() }}
+            {{ day.date.getDate() }}
           </div>
           <div class="space-y-1">
             <div
