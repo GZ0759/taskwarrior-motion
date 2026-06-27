@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import type { Task } from '@/types/task'
 
 const store = useTaskStore()
 const { isDark } = useTheme()
+
+// 获取待办和已完成任务
+onMounted(() => {
+  store.fetchPendingTasks()
+  store.fetchCompletedTasks(7) // 最近 7 天完成的任务
+})
 
 const columns = [
   { key: 'inbox', label: 'Inbox', filter: (t: Task) => !t.project && t.status === 'pending' },
@@ -39,6 +45,11 @@ function moveToColumn(task: Task, targetColumn: string) {
       break
     case 'done':
       store.completeTask(task.uuid)
+      // 刷新数据，让任务出现在 Done 列
+      setTimeout(() => {
+        store.fetchPendingTasks()
+        store.fetchCompletedTasks(7)
+      }, 100)
       break
     case 'backlog':
       if (task.start) {
