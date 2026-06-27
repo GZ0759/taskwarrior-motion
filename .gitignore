@@ -53,6 +53,7 @@ temp/
 # Dependencies
 server/target/
 client/node_modules/
+design/*/node_modules/
 
 # Lock files (optional)
 # package-lock.json
