@@ -1,20 +1,15 @@
-pub mod errors;
-pub mod models;
-pub mod routes;
-pub mod taskwarrior;
-
 use axum::{Router, routing::get, routing::post};
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
 
-use routes::AppState;
-use taskwarrior::TaskwarriorClient;
+use taskwarrior_motion::routes;
+use taskwarrior_motion::routes::AppState;
+use taskwarrior_motion::taskwarrior::TaskwarriorClient;
 
 #[tokio::main]
 async fn main() {
     let state = AppState {
-        client: Arc::new(Mutex::new(TaskwarriorClient::new())),
+        client: Arc::new(TaskwarriorClient::new()),
     };
 
     let cors = CorsLayer::new()

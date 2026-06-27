@@ -50,6 +50,33 @@ impl TaskwarriorClient {
         Ok(tasks)
     }
 
+    pub async fn export_one(&self, uuid: &str) -> Result<Task, AppError> {
+        let output = Command::new("task")
+            .args(["export", &format!("uuid:{}", uuid)])
+            .output()
+            .await
+            .map_err(|e| AppError::TaskError(format!("Failed to execute task export: {}", e)))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if stderr.contains("No matches") {
+                return Err(AppError::NotFound(format!("Task {} not found", uuid)));
+            }
+            return Err(AppError::TaskError(format!("task export failed: {}", stderr)));
+        }
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if stdout.trim().is_empty() || stdout.trim() == "[]" {
+            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
+        }
+
+        let tasks: Vec<Task> = serde_json::from_str(&stdout)
+            .map_err(|e| AppError::TaskError(format!("Failed to parse task output: {}", e)))?;
+
+        tasks.into_iter().next()
+            .ok_or_else(|| AppError::NotFound(format!("Task {} not found", uuid)))
+    }
+
     pub async fn add(&self, args: Vec<&str>) -> Result<String, AppError> {
         let mut cmd_args = vec!["add"];
         cmd_args.extend(args);
@@ -70,11 +97,6 @@ impl TaskwarriorClient {
     }
 
     pub async fn modify(&self, uuid: &str, args: Vec<&str>) -> Result<(), AppError> {
-        // First check if task exists
-        let tasks = self.export(None).await?;
-        if !tasks.iter().any(|t| t.uuid == uuid) {
-            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
-        }
 
         let mut cmd_args = vec![uuid, "modify"];
         cmd_args.extend(args);
@@ -97,11 +119,6 @@ impl TaskwarriorClient {
     }
 
     pub async fn done(&self, uuid: &str) -> Result<(), AppError> {
-        // First check if task exists
-        let tasks = self.export(None).await?;
-        if !tasks.iter().any(|t| t.uuid == uuid) {
-            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
-        }
 
         let output = Command::new("task")
             .args([uuid, "done"])
@@ -127,11 +144,6 @@ impl TaskwarriorClient {
     }
 
     pub async fn uncomplete(&self, uuid: &str) -> Result<(), AppError> {
-        // First check if task exists
-        let tasks = self.export(None).await?;
-        if !tasks.iter().any(|t| t.uuid == uuid) {
-            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
-        }
 
         let output = Command::new("task")
             .args([uuid, "modify", "status:pending"])
@@ -159,11 +171,6 @@ impl TaskwarriorClient {
     pub async fn delete(&self, uuid: &str) -> Result<(), AppError> {
         use tokio::io::AsyncWriteExt;
 
-        // First check if task exists
-        let tasks = self.export(None).await?;
-        if !tasks.iter().any(|t| t.uuid == uuid) {
-            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
-        }
 
         let mut child = Command::new("task")
             .args([uuid, "delete"])
@@ -203,11 +210,6 @@ impl TaskwarriorClient {
     }
 
     pub async fn start(&self, uuid: &str) -> Result<(), AppError> {
-        // First check if task exists
-        let tasks = self.export(None).await?;
-        if !tasks.iter().any(|t| t.uuid == uuid) {
-            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
-        }
 
         let output = Command::new("task")
             .args([uuid, "start"])
@@ -233,11 +235,6 @@ impl TaskwarriorClient {
     }
 
     pub async fn stop(&self, uuid: &str) -> Result<(), AppError> {
-        // First check if task exists
-        let tasks = self.export(None).await?;
-        if !tasks.iter().any(|t| t.uuid == uuid) {
-            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
-        }
 
         let output = Command::new("task")
             .args([uuid, "stop"])

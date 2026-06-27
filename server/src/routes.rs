@@ -3,7 +3,6 @@ use axum::{
     extract::{Path, Query, State},
 };
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 use crate::errors::AppError;
 use crate::models::{CreateTaskRequest, MessageResponse, Task, TaskQueryParams, UpdateTaskRequest};
@@ -11,14 +10,14 @@ use crate::taskwarrior::TaskwarriorClient;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub client: Arc<Mutex<TaskwarriorClient>>,
+    pub client: Arc<TaskwarriorClient>,
 }
 
 pub async fn get_tasks(
     State(state): State<AppState>,
     Query(params): Query<TaskQueryParams>,
 ) -> Result<Json<Vec<Task>>, AppError> {
-    let client = state.client.lock().await;
+    let client = state.client.as_ref();
 
     let filter = params.filter.as_deref();
     let mut tasks = client.export(filter).await?;
@@ -88,7 +87,7 @@ pub async fn create_task(
         ));
     }
 
-    let client = state.client.lock().await;
+    let client = state.client.as_ref();
 
     let mut args: Vec<String> = Vec::new();
     args.push(payload.description.clone());
@@ -139,7 +138,7 @@ pub async fn update_task(
     Path(uuid): Path<String>,
     Json(payload): Json<UpdateTaskRequest>,
 ) -> Result<Json<MessageResponse>, AppError> {
-    let client = state.client.lock().await;
+    let client = state.client.as_ref();
 
     let mut args: Vec<String> = Vec::new();
 
@@ -190,7 +189,7 @@ pub async fn delete_task(
     State(state): State<AppState>,
     Path(uuid): Path<String>,
 ) -> Result<Json<MessageResponse>, AppError> {
-    let client = state.client.lock().await;
+    let client = state.client.as_ref();
     client.delete(&uuid).await?;
 
     Ok(Json(MessageResponse {
@@ -202,7 +201,7 @@ pub async fn done_task(
     State(state): State<AppState>,
     Path(uuid): Path<String>,
 ) -> Result<Json<MessageResponse>, AppError> {
-    let client = state.client.lock().await;
+    let client = state.client.as_ref();
     client.done(&uuid).await?;
 
     Ok(Json(MessageResponse {
@@ -214,7 +213,7 @@ pub async fn uncomplete_task(
     State(state): State<AppState>,
     Path(uuid): Path<String>,
 ) -> Result<Json<MessageResponse>, AppError> {
-    let client = state.client.lock().await;
+    let client = state.client.as_ref();
     client.uncomplete(&uuid).await?;
 
     Ok(Json(MessageResponse {
@@ -226,7 +225,7 @@ pub async fn start_task(
     State(state): State<AppState>,
     Path(uuid): Path<String>,
 ) -> Result<Json<MessageResponse>, AppError> {
-    let client = state.client.lock().await;
+    let client = state.client.as_ref();
     client.start(&uuid).await?;
 
     Ok(Json(MessageResponse {
@@ -238,7 +237,7 @@ pub async fn stop_task(
     State(state): State<AppState>,
     Path(uuid): Path<String>,
 ) -> Result<Json<MessageResponse>, AppError> {
-    let client = state.client.lock().await;
+    let client = state.client.as_ref();
     client.stop(&uuid).await?;
 
     Ok(Json(MessageResponse {
@@ -247,7 +246,7 @@ pub async fn stop_task(
 }
 
 pub async fn undo_action(State(state): State<AppState>) -> Result<Json<MessageResponse>, AppError> {
-    let client = state.client.lock().await;
+    let client = state.client.as_ref();
     client.undo().await?;
 
     Ok(Json(MessageResponse {
@@ -259,13 +258,7 @@ pub async fn get_task_by_uuid(
     State(state): State<AppState>,
     Path(uuid): Path<String>,
 ) -> Result<Json<Task>, AppError> {
-    let client = state.client.lock().await;
-    let tasks = client.export(None).await?;
-
-    let task = tasks
-        .into_iter()
-        .find(|t| t.uuid == uuid)
-        .ok_or_else(|| AppError::NotFound(format!("Task {} not found", uuid)))?;
-
+    let client = state.client.as_ref();
+    let task = client.export_one(&uuid).await?;
     Ok(Json(task))
 }
