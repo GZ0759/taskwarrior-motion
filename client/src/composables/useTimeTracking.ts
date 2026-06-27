@@ -2,28 +2,30 @@ import { ref, computed } from 'vue'
 import { useTaskStore } from '@/stores/task'
 import type { Task } from '@/types/task'
 
+// 模块级单例状态
+const activeTask = ref<Task | null>(null)
+const startTime = ref<Date | null>(null)
+const elapsedTime = ref(0)
+let timerInterval: ReturnType<typeof setInterval> | null = null
+
+const isTracking = computed(() => activeTask.value !== null)
+
+const formattedTime = computed(() => {
+  const seconds = elapsedTime.value
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${secs}s`
+  } else if (minutes > 0) {
+    return `${minutes}m ${secs}s`
+  }
+  return `${secs}s`
+})
+
 export function useTimeTracking() {
   const store = useTaskStore()
-  const activeTask = ref<Task | null>(null)
-  const startTime = ref<Date | null>(null)
-  const elapsedTime = ref(0)
-  let timerInterval: ReturnType<typeof setInterval> | null = null
-
-  const isTracking = computed(() => activeTask.value !== null)
-
-  const formattedTime = computed(() => {
-    const seconds = elapsedTime.value
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`
-    } else if (minutes > 0) {
-      return `${minutes}m ${secs}s`
-    }
-    return `${secs}s`
-  })
 
   function startTracking(task: Task) {
     if (activeTask.value) {
@@ -48,6 +50,10 @@ export function useTimeTracking() {
       store.stopTask(activeTask.value.uuid)
     }
 
+    cleanup()
+  }
+
+  function cleanup() {
     if (timerInterval) {
       clearInterval(timerInterval)
       timerInterval = null
@@ -73,5 +79,6 @@ export function useTimeTracking() {
     startTracking,
     stopTracking,
     toggleTracking,
+    cleanup,
   }
 }

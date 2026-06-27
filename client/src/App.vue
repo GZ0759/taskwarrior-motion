@@ -149,6 +149,7 @@ useKeyboard({
 })
 
 onMounted(() => {
+  store.fetchTasks()       // 填充 store.tasks，供标签/项目选择器使用
   store.fetchPendingTasks()
   store.fetchStats()
 })
