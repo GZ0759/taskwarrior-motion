@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useTaskStore } from '@/stores/task'
+import { useTheme } from '@/composables/useTheme'
 import type { Task } from '@/types/task'
 
 const store = useTaskStore()
+const { isDark } = useTheme()
 
 type CalendarView = 'month' | 'week' | 'day'
 
@@ -11,11 +13,10 @@ const currentView = ref<CalendarView>('month')
 const currentDate = ref(new Date())
 
 const viewOptions: CalendarView[] = ['month', 'week', 'day']
-
-const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const daysOfWeek = ['日', '一', '二', '三', '四', '五', '六']
 
 const currentMonth = computed(() => {
-  return currentDate.value.toLocaleString('default', { month: 'long', year: 'numeric' })
+  return currentDate.value.toLocaleString('zh-CN', { month: 'long', year: 'numeric' })
 })
 
 const calendarDays = computed(() => {
@@ -30,19 +31,16 @@ const calendarDays = computed(() => {
 
   const days: Array<{ date: Date; isCurrentMonth: boolean; tasks: Task[] }> = []
 
-  // Previous month days
   for (let i = startOffset - 1; i >= 0; i--) {
     const date = new Date(year, month, -i)
     days.push({ date, isCurrentMonth: false, tasks: getTasksForDate(date) })
   }
 
-  // Current month days
   for (let i = 1; i <= totalDays; i++) {
     const date = new Date(year, month, i)
     days.push({ date, isCurrentMonth: true, tasks: getTasksForDate(date) })
   }
 
-  // Next month days
   const remaining = 42 - days.length
   for (let i = 1; i <= remaining; i++) {
     const date = new Date(year, month + 1, i)
@@ -54,12 +52,7 @@ const calendarDays = computed(() => {
 
 function getTasksForDate(date: Date): Task[] {
   const dateStr = date.toISOString().split('T')[0]
-  return store.tasks.filter((t) => {
-    if (t.due) {
-      return t.due === dateStr
-    }
-    return false
-  })
+  return store.tasks.filter((t) => t.due && t.due === dateStr)
 }
 
 function isToday(date: Date): boolean {
@@ -87,143 +80,149 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="calendar-view">
+  <div>
+    <!-- 标题栏 -->
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Calendar</h2>
+      <h2 class="text-lg font-black" :style="{ color: 'var(--txt-primary)' }">日历</h2>
 
       <div class="flex items-center gap-4">
-        <!-- View Toggle -->
-        <div class="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+        <!-- 视图切换 -->
+        <div
+          class="flex rounded-xl p-1"
+          :style="{ background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)' }"
+        >
           <button
             v-for="view in viewOptions"
             :key="view"
-            class="px-3 py-1 text-sm rounded-md transition-colors"
-            :class="
-              currentView === view
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-            "
+            class="px-3 py-1 text-xs font-semibold rounded-lg transition-all"
+            :class="currentView === view
+              ? (isDark ? 'bg-white/15 text-white' : 'bg-white text-gray-800 shadow-sm')
+              : ''"
+            :style="currentView !== view ? { color: 'var(--txt-muted)' } : {}"
             @click="currentView = view"
-          >
-            {{ view.charAt(0).toUpperCase() + view.slice(1) }}
-          </button>
+          >{{ view === 'month' ? '月' : view === 'week' ? '周' : '日' }}</button>
         </div>
 
-        <!-- Navigation -->
+        <!-- 导航 -->
         <div class="flex items-center gap-2">
           <button
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            class="p-2 rounded-xl transition-colors"
+            :style="{ color: 'var(--txt-muted)' }"
             @click="navigateMonth(-1)"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 19l-7-7 7-7"
-              />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
 
           <button
-            class="px-4 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            class="px-3 py-1.5 text-xs font-semibold rounded-xl transition-colors"
+            :style="{ color: 'var(--txt-primary)' }"
             @click="goToToday"
-          >
-            Today
-          </button>
+          >今天</button>
 
           <button
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            class="p-2 rounded-xl transition-colors"
+            :style="{ color: 'var(--txt-muted)' }"
             @click="navigateMonth(1)"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
 
-        <span class="text-lg font-medium text-gray-900 dark:text-gray-100">
+        <span class="text-sm font-bold" :style="{ color: 'var(--txt-primary)' }">
           {{ currentMonth }}
         </span>
       </div>
     </div>
 
-    <!-- Month View -->
+    <!-- 月视图 -->
     <div
       v-if="currentView === 'month'"
-      class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+      class="rounded-2xl overflow-hidden"
+      :style="{
+        background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.30)',
+        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.50)'}`,
+      }"
     >
-      <!-- Day Headers -->
-      <div class="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700">
+      <!-- 星期头部 -->
+      <div
+        class="grid grid-cols-7"
+        :style="{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }"
+      >
         <div
           v-for="day in daysOfWeek"
           :key="day"
-          class="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 text-center"
-        >
-          {{ day }}
-        </div>
+          class="px-4 py-2 text-xs font-bold text-center"
+          :style="{ color: 'var(--txt-muted)' }"
+        >{{ day }}</div>
       </div>
 
-      <!-- Calendar Grid -->
+      <!-- 日历格子 -->
       <div class="grid grid-cols-7">
         <div
           v-for="(day, index) in calendarDays"
           :key="index"
-          class="min-h-[100px] p-2 border-r border-b border-gray-100 dark:border-gray-700 last:border-r-0"
-          :class="{
-            'bg-gray-50 dark:bg-gray-900/50': !day.isCurrentMonth,
-            'bg-blue-50 dark:bg-blue-900/10': isToday(day.date),
+          class="min-h-[90px] p-2"
+          :style="{
+            borderRight: (index % 7 !== 6) ? `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}` : 'none',
+            borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`,
+            background: isToday(day.date)
+              ? (isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)')
+              : (!day.isCurrentMonth ? (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)') : 'transparent'),
           }"
         >
           <div
-            class="text-sm font-medium mb-1"
-            :class="{
-              'text-gray-400 dark:text-gray-600': !day.isCurrentMonth,
-              'text-blue-600 dark:text-blue-400': isToday(day.date),
-              'text-gray-900 dark:text-gray-100': day.isCurrentMonth && !isToday(day.date),
+            class="text-xs font-bold mb-1"
+            :style="{
+              color: isToday(day.date)
+                ? (isDark ? '#818cf8' : '#6366f1')
+                : (!day.isCurrentMonth ? 'var(--txt-subtle)' : 'var(--txt-primary)'),
             }"
-          >
-            {{ day.date.getDate() }}
-          </div>
+          >{{ day.date.getDate() }}</div>
 
           <div class="space-y-1">
             <div
               v-for="task in day.tasks.slice(0, 3)"
               :key="task.uuid"
-              class="text-xs px-1.5 py-0.5 rounded truncate cursor-pointer"
-              :class="{
-                'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300':
-                  task.priority === 'H',
-                'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300':
-                  task.priority === 'M',
-                'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300':
-                  task.priority === 'L',
-                'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300': !task.priority,
+              class="text-[10px] px-1.5 py-0.5 rounded-md truncate cursor-pointer font-medium"
+              :style="{
+                background: task.priority === 'H'
+                  ? (isDark ? 'rgba(239,68,68,0.20)' : 'rgba(239,68,68,0.10)')
+                  : task.priority === 'M'
+                    ? (isDark ? 'rgba(234,179,8,0.20)' : 'rgba(234,179,8,0.10)')
+                    : (isDark ? 'rgba(99,102,241,0.20)' : 'rgba(99,102,241,0.10)'),
+                color: task.priority === 'H'
+                  ? (isDark ? '#fca5a5' : '#ef4444')
+                  : task.priority === 'M'
+                    ? (isDark ? '#fde68a' : '#eab308')
+                    : (isDark ? '#a5b4fc' : '#6366f1'),
               }"
               @click="emit('edit', task)"
-            >
-              {{ task.description }}
-            </div>
-            <div v-if="day.tasks.length > 3" class="text-xs text-gray-500 dark:text-gray-400">
-              +{{ day.tasks.length - 3 }} more
-            </div>
+            >{{ task.description }}</div>
+            <div
+              v-if="day.tasks.length > 3"
+              class="text-[10px]"
+              :style="{ color: 'var(--txt-subtle)' }"
+            >+{{ day.tasks.length - 3 }} 更多</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Week/Day View Placeholder -->
+    <!-- 周/日视图占位 -->
     <div
       v-else
-      class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center"
+      class="rounded-2xl p-8 text-center"
+      :style="{
+        background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.30)',
+        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.50)'}`,
+      }"
     >
-      <p class="text-gray-500 dark:text-gray-400">
-        {{ currentView === 'week' ? 'Week' : 'Day' }} view coming soon
+      <p class="text-sm" :style="{ color: 'var(--txt-muted)' }">
+        {{ currentView === 'week' ? '周' : '日' }}视图开发中
       </p>
     </div>
   </div>
