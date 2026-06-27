@@ -1,72 +1,56 @@
 [
   {
     "label": "Start Backend (Rust)",
-    "command": "cargo",
-    "args": ["run"],
-    "cwd": "$ZED_WORKTREE/server",
+    "command": "cd server && cargo run",
     "use_new_terminal": true,
     "allow_concurrent_runs": false,
     "reveal": "always"
   },
   {
     "label": "Start Frontend (Vue)",
-    "command": "pnpm",
-    "args": ["dev"],
-    "cwd": "$ZED_WORKTREE/client",
+    "command": "cd client && pnpm dev",
     "use_new_terminal": true,
     "allow_concurrent_runs": false,
     "reveal": "always"
   },
   {
     "label": "Build All",
-    "command": "make",
-    "args": ["build"],
-    "cwd": "$ZED_WORKTREE",
+    "command": "make build",
     "use_new_terminal": true,
     "allow_concurrent_runs": false,
     "reveal": "always"
   },
   {
     "label": "Run Tests (All)",
-    "command": "make",
-    "args": ["test"],
-    "cwd": "$ZED_WORKTREE",
+    "command": "make test",
     "use_new_terminal": true,
     "allow_concurrent_runs": false,
     "reveal": "always"
   },
   {
     "label": "Run Tests (Backend)",
-    "command": "cargo",
-    "args": ["test"],
-    "cwd": "$ZED_WORKTREE/server",
+    "command": "cd server && cargo test",
     "use_new_terminal": true,
     "allow_concurrent_runs": false,
     "reveal": "always"
   },
   {
     "label": "Run Tests (Frontend)",
-    "command": "pnpm",
-    "args": ["test"],
-    "cwd": "$ZED_WORKTREE/client",
+    "command": "cd client && pnpm test",
     "use_new_terminal": true,
     "allow_concurrent_runs": false,
     "reveal": "always"
   },
   {
     "label": "Lint (All)",
-    "command": "make",
-    "args": ["lint"],
-    "cwd": "$ZED_WORKTREE",
+    "command": "make lint",
     "use_new_terminal": true,
     "allow_concurrent_runs": false,
     "reveal": "always"
   },
   {
     "label": "Format (All)",
-    "command": "make",
-    "args": ["fmt"],
-    "cwd": "$ZED_WORKTREE",
+    "command": "make fmt",
     "use_new_terminal": true,
     "allow_concurrent_runs": false,
     "reveal": "always"

@@ -70,6 +70,12 @@ impl TaskwarriorClient {
     }
 
     pub async fn modify(&self, uuid: &str, args: Vec<&str>) -> Result<(), AppError> {
+        // First check if task exists
+        let tasks = self.export(None).await?;
+        if !tasks.iter().any(|t| t.uuid == uuid) {
+            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
+        }
+
         let mut cmd_args = vec![uuid, "modify"];
         cmd_args.extend(args);
 
@@ -91,6 +97,12 @@ impl TaskwarriorClient {
     }
 
     pub async fn done(&self, uuid: &str) -> Result<(), AppError> {
+        // First check if task exists
+        let tasks = self.export(None).await?;
+        if !tasks.iter().any(|t| t.uuid == uuid) {
+            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
+        }
+
         let output = Command::new("task")
             .args([uuid, "done"])
             .output()
@@ -99,24 +111,61 @@ impl TaskwarriorClient {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(AppError::TaskError(format!("task done failed: {}", stderr)));
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let error_msg = if stderr.is_empty() {
+                stdout.to_string()
+            } else {
+                stderr.to_string()
+            };
+            return Err(AppError::TaskError(format!(
+                "task done failed: {}",
+                error_msg
+            )));
         }
 
         Ok(())
     }
 
     pub async fn delete(&self, uuid: &str) -> Result<(), AppError> {
-        let output = Command::new("task")
+        use tokio::io::AsyncWriteExt;
+
+        // First check if task exists
+        let tasks = self.export(None).await?;
+        if !tasks.iter().any(|t| t.uuid == uuid) {
+            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
+        }
+
+        let mut child = Command::new("task")
             .args([uuid, "delete"])
-            .output()
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .map_err(|e| AppError::TaskError(format!("Failed to spawn task delete: {}", e)))?;
+
+        // Send "yes" to confirm the delete
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin.write_all(b"yes\n").await.map_err(|e| {
+                AppError::TaskError(format!("Failed to write to stdin: {}", e))
+            })?;
+        }
+
+        let output = child
+            .wait_with_output()
             .await
-            .map_err(|e| AppError::TaskError(format!("Failed to execute task delete: {}", e)))?;
+            .map_err(|e| AppError::TaskError(format!("Failed to wait for task delete: {}", e)))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let error_msg = if stderr.is_empty() {
+                stdout.to_string()
+            } else {
+                stderr.to_string()
+            };
             return Err(AppError::TaskError(format!(
                 "task delete failed: {}",
-                stderr
+                error_msg
             )));
         }
 
@@ -124,6 +173,12 @@ impl TaskwarriorClient {
     }
 
     pub async fn start(&self, uuid: &str) -> Result<(), AppError> {
+        // First check if task exists
+        let tasks = self.export(None).await?;
+        if !tasks.iter().any(|t| t.uuid == uuid) {
+            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
+        }
+
         let output = Command::new("task")
             .args([uuid, "start"])
             .output()
@@ -132,9 +187,15 @@ impl TaskwarriorClient {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let error_msg = if stderr.is_empty() {
+                stdout.to_string()
+            } else {
+                stderr.to_string()
+            };
             return Err(AppError::TaskError(format!(
                 "task start failed: {}",
-                stderr
+                error_msg
             )));
         }
 
@@ -142,6 +203,12 @@ impl TaskwarriorClient {
     }
 
     pub async fn stop(&self, uuid: &str) -> Result<(), AppError> {
+        // First check if task exists
+        let tasks = self.export(None).await?;
+        if !tasks.iter().any(|t| t.uuid == uuid) {
+            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
+        }
+
         let output = Command::new("task")
             .args([uuid, "stop"])
             .output()
@@ -150,22 +217,56 @@ impl TaskwarriorClient {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(AppError::TaskError(format!("task stop failed: {}", stderr)));
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let error_msg = if stderr.is_empty() {
+                stdout.to_string()
+            } else {
+                stderr.to_string()
+            };
+            return Err(AppError::TaskError(format!(
+                "task stop failed: {}",
+                error_msg
+            )));
         }
 
         Ok(())
     }
 
     pub async fn undo(&self) -> Result<(), AppError> {
-        let output = Command::new("task")
+        use tokio::io::AsyncWriteExt;
+
+        let mut child = Command::new("task")
             .args(["undo"])
-            .output()
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .map_err(|e| AppError::TaskError(format!("Failed to spawn task undo: {}", e)))?;
+
+        // Send "yes" to confirm the undo
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin.write_all(b"yes\n").await.map_err(|e| {
+                AppError::TaskError(format!("Failed to write to stdin: {}", e))
+            })?;
+        }
+
+        let output = child
+            .wait_with_output()
             .await
-            .map_err(|e| AppError::TaskError(format!("Failed to execute task undo: {}", e)))?;
+            .map_err(|e| AppError::TaskError(format!("Failed to wait for task undo: {}", e)))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(AppError::TaskError(format!("task undo failed: {}", stderr)));
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let error_msg = if stderr.is_empty() {
+                stdout.to_string()
+            } else {
+                stderr.to_string()
+            };
+            return Err(AppError::TaskError(format!(
+                "task undo failed: {}",
+                error_msg
+            )));
         }
 
         Ok(())
