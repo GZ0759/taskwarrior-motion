@@ -1,66 +1,83 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { Sparkles, Volume2, VolumeX, Sun, Moon, Monitor } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import { useKeyboard } from '@/composables/useKeyboard'
-import { useTimeTracking } from '@/composables/useTimeTracking'
 import { useSound } from '@/composables/useSound'
+import Heatmap from '@/components/Heatmap.vue'
+import ProjectProgress from '@/components/ProjectProgress.vue'
+import TaskCard from '@/components/TaskCard.vue'
+import AddTask from '@/components/AddTask.vue'
+import CompletionModal from '@/components/CompletionModal.vue'
 import TaskList from '@/components/TaskList.vue'
-import TaskForm from '@/components/TaskForm.vue'
 import KanbanView from '@/views/KanbanView.vue'
 import CalendarView from '@/views/CalendarView.vue'
 import DoneView from '@/views/DoneView.vue'
-import type { Task, CreateTaskRequest } from '@/types/task'
+import type { UpdateTaskRequest } from '@/types/task'
 
 const store = useTaskStore()
-const { isDark, toggleTheme } = useTheme()
-const { activeTask: trackingTask, isTracking, formattedTime, toggleTracking } = useTimeTracking()
-const { playAdd, soundEnabled, toggleSound } = useSound()
+const { theme, isDark, toggleTheme } = useTheme()
+const { soundEnabled, toggleSound } = useSound()
 
-const showForm = ref(false)
-const editingTask = ref<Task | null>(null)
-const activeTaskIndex = ref(-1)
-const showHelp = ref(false)
+// 完成弹窗
+const doneInfo = ref<{ description: string; todayCount: number; totalDone: number } | null>(null)
 
-type ViewType = 'next' | 'ready' | 'agenda' | 'forecast' | 'kanban' | 'calendar' | 'done'
-
+// 视图切换
+type ViewType = 'next' | 'kanban' | 'calendar' | 'done'
 const currentView = ref<ViewType>('next')
 
+// 项目和标签管理
+const allProjects = computed(() => {
+  const set = new Set<string>()
+  store.tasks.forEach((t) => {
+    if (t.project) set.add(t.project)
+  })
+  return Array.from(set)
+})
+
+const allTags = computed(() => {
+  const set = new Set<string>()
+  store.tasks.forEach((t) => {
+    t.tags?.forEach((tag) => set.add(tag))
+  })
+  return Array.from(set)
+})
+
+// 今日完成数和累计完成数
+const todayStr = new Date().toISOString().split('T')[0]
+const todayCount = computed(() => {
+  return store.completedTasks.filter((t) => {
+    if (!t.end) return false
+    const dateStr = t.end.slice(0, 4) + '-' + t.end.slice(4, 6) + '-' + t.end.slice(6, 8)
+    return dateStr === todayStr
+  }).length
+})
+const totalDone = computed(() => store.completedTasks.length)
+
+// 活跃任务数
+const activeCount = computed(() => store.pendingTasks.length)
+
+// 主题图标
+const themeIcon = computed(() => {
+  if (theme.value === 'light') return Sun
+  if (theme.value === 'dark') return Moon
+  return Monitor
+})
+
+// 键盘快捷键
 useKeyboard({
   onNewTask: () => {
-    editingTask.value = null
-    showForm.value = true
+    // AddTask 组件自己处理
   },
-  onNextTask: () => {
-    if (activeTaskIndex.value < store.filteredTasks.length - 1) {
-      activeTaskIndex.value++
-    }
-  },
-  onPrevTask: () => {
-    if (activeTaskIndex.value > 0) {
-      activeTaskIndex.value--
-    }
-  },
-  onCompleteTask: () => {
-    if (activeTaskIndex.value >= 0 && activeTaskIndex.value < store.filteredTasks.length) {
-      const task = store.filteredTasks[activeTaskIndex.value]
-      store.completeTask(task.uuid)
-    }
-  },
-  onEditTask: () => {
-    if (activeTaskIndex.value >= 0 && activeTaskIndex.value < store.filteredTasks.length) {
-      editingTask.value = store.filteredTasks[activeTaskIndex.value]
-      showForm.value = true
-    }
-  },
+  onNextTask: () => {},
+  onPrevTask: () => {},
+  onCompleteTask: () => {},
+  onEditTask: () => {},
   onCloseModal: () => {
-    showForm.value = false
-    editingTask.value = null
-    showHelp.value = false
+    doneInfo.value = null
   },
-  onShowHelp: () => {
-    showHelp.value = !showHelp.value
-  },
+  onShowHelp: () => {},
   onUndo: () => {
     store.undo()
   },
@@ -70,361 +87,241 @@ onMounted(() => {
   store.fetchTasks()
 })
 
-function handleSubmit(data: CreateTaskRequest) {
-  if (editingTask.value) {
-    store.updateTask(editingTask.value.uuid, data)
-  } else {
-    playAdd()
-    store.addTask(data)
-  }
-  showForm.value = false
-  editingTask.value = null
+// 添加任务
+function handleAddTask(description: string) {
+  store.addTask({ description })
 }
 
-function handleDelete(uuid: string) {
+// 完成任务（带动画和弹窗）
+function handleCompleteTask(uuid: string, desc: string) {
+  store.completeTask(uuid)
+  // 计算统计数据
+  const newTodayCount = todayCount.value + 1
+  const newTotalDone = totalDone.value + 1
+  setTimeout(() => {
+    doneInfo.value = {
+      description: desc,
+      todayCount: newTodayCount,
+      totalDone: newTotalDone,
+    }
+  }, 60)
+}
+
+// 更新任务
+function handleUpdateTask(uuid: string, data: UpdateTaskRequest) {
+  store.updateTask(uuid, data)
+}
+
+// 删除任务
+function handleDeleteTask(uuid: string) {
   store.deleteTask(uuid)
-  if (activeTaskIndex.value >= store.filteredTasks.length) {
-    activeTaskIndex.value = store.filteredTasks.length - 1
-  }
 }
 
-function handleEdit(task: Task) {
-  editingTask.value = task
-  showForm.value = true
+// 项目/标签 CRUD（通过修改任务实现）
+function handleAddProject(_name: string) {
+  // 项目是任务的属性，添加项目时不需要额外操作
+  // 当用户在 ProjectPicker 中添加新项目并保存任务时，项目会自动出现
 }
 
-function openNewTaskForm() {
-  editingTask.value = null
-  showForm.value = true
+function handleDeleteProject(name: string) {
+  // 删除项目：将该项目下的所有任务的 project 清空
+  store.tasks
+    .filter((t) => t.project === name)
+    .forEach((t) => store.updateTask(t.uuid, { project: '' }))
 }
 
-function cancelForm() {
-  showForm.value = false
-  editingTask.value = null
+function handleAddTag(_name: string) {
+  // 标签同理，添加时不需要额外操作
 }
 
-function handleToggleTimer(uuid: string) {
-  const task = store.tasks.find((t) => t.uuid === uuid)
-  if (task) {
-    toggleTracking(task)
-  }
-}
-
-async function handleBulkComplete(uuids: string[]) {
-  for (const uuid of uuids) {
-    await store.completeTask(uuid)
-  }
-}
-
-async function handleBulkDelete(uuids: string[]) {
-  for (const uuid of uuids) {
-    await store.deleteTask(uuid)
-  }
+function handleDeleteTag(name: string) {
+  // 删除标签：从所有任务中移除该标签
+  store.tasks
+    .filter((t) => t.tags?.includes(name))
+    .forEach((t) =>
+      store.updateTask(t.uuid, { tags: t.tags?.filter((tag) => tag !== name) })
+    )
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-    <!-- Header -->
-    <header
-      class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4"
-    >
-      <div class="flex items-center justify-between">
-        <h1 class="text-xl font-bold">taskwarrior-motion</h1>
-        <div class="flex items-center gap-4">
-          <!-- Timer Display -->
-          <div
-            v-if="isTracking && trackingTask"
-            class="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg"
-          >
-            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span class="text-sm text-green-700 dark:text-green-300 font-medium">
-              {{ formattedTime }}
-            </span>
-            <span class="text-sm text-green-600 dark:text-green-400 truncate max-w-[200px]">
-              {{ trackingTask.description }}
-            </span>
+  <div
+    class="size-full flex overflow-hidden min-h-screen"
+    :class="isDark ? 'mesh-dark' : 'mesh-light'"
+  >
+    <div class="flex gap-5 p-5 w-full h-full">
+      <!-- ── 左侧面板 ── -->
+      <div
+        class="flex flex-col rounded-3xl shadow-2xl overflow-hidden shrink-0"
+        :class="isDark ? 'glass-dark' : 'glass-light'"
+        :style="{ width: '310px', minWidth: '270px' }"
+      >
+        <!-- Header -->
+        <div
+          class="flex items-center justify-between px-5 pt-5 pb-4 shrink-0"
+          :style="{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}` }"
+        >
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 logo-gradient">
+              <Sparkles :size="15" class="text-white" />
+            </div>
+            <div>
+              <div class="text-[13px] font-bold" :style="{ color: 'var(--txt-primary)' }">
+                taskwarrior
+              </div>
+              <div class="text-[10px]" :style="{ color: 'var(--txt-muted)' }">motion</div>
+            </div>
           </div>
-          <button
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            @click="toggleTheme"
-          >
-            <svg
-              v-if="isDark"
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div class="flex gap-0.5">
+            <button
+              class="p-2 rounded-xl transition-colors"
+              :style="{ color: 'var(--ctrl-btn)' }"
+              @click="toggleSound"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-              />
-            </svg>
-            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-              />
-            </svg>
-          </button>
-          <button
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            @click="showHelp = !showHelp"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </button>
-          <button
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            @click="toggleSound"
-          >
-            <svg
-              v-if="soundEnabled"
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+              <Volume2 v-if="soundEnabled" :size="14" />
+              <VolumeX v-else :size="14" />
+            </button>
+            <button
+              class="p-2 rounded-xl transition-colors"
+              :style="{ color: 'var(--ctrl-btn)' }"
+              @click="toggleTheme"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-              />
-            </svg>
-            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-              />
-            </svg>
-          </button>
+              <component :is="themeIcon" :size="14" />
+            </button>
+          </div>
+        </div>
+
+        <!-- 热力图 + 项目进度 -->
+        <div class="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+          <Heatmap />
+
+          <div
+            :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}`, paddingTop: '20px' }"
+          >
+            <ProjectProgress />
+          </div>
         </div>
       </div>
-    </header>
 
-    <div class="flex">
-      <!-- Sidebar -->
-      <aside
-        class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 min-h-[calc(100vh-73px)] p-4"
+      <!-- ── 右侧面板 ── -->
+      <div
+        class="flex-1 flex flex-col rounded-3xl shadow-2xl overflow-hidden"
+        :class="isDark ? 'glass-dark' : 'glass-light'"
       >
-        <nav class="space-y-2">
-          <button
-            v-for="view in [
-              'next',
-              'ready',
-              'agenda',
-              'forecast',
-              'kanban',
-              'calendar',
-              'done',
-            ] as const"
-            :key="view"
-            class="w-full text-left px-3 py-2 rounded-lg transition-colors"
-            :class="
-              currentView === view
-                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-            "
-            @click="currentView = view"
-          >
-            {{ view.charAt(0).toUpperCase() + view.slice(1) }}
-          </button>
-        </nav>
-
-        <div class="mt-6">
-          <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Filters</h3>
-          <div class="space-y-1">
-            <button
-              class="w-full text-left px-3 py-1.5 text-sm rounded-lg transition-colors"
-              :class="
-                store.activeFilter === ''
-                  ? 'bg-gray-100 dark:bg-gray-700'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-              "
-              @click="store.setFilter('')"
-            >
-              All
-            </button>
-            <button
-              class="w-full text-left px-3 py-1.5 text-sm rounded-lg transition-colors"
-              :class="
-                store.activeFilter === 'status:pending'
-                  ? 'bg-gray-100 dark:bg-gray-700'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-              "
-              @click="store.setFilter('status:pending')"
-            >
-              Pending
-            </button>
-            <button
-              class="w-full text-left px-3 py-1.5 text-sm rounded-lg transition-colors"
-              :class="
-                store.activeFilter === 'status:completed'
-                  ? 'bg-gray-100 dark:bg-gray-700'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-              "
-              @click="store.setFilter('status:completed')"
-            >
-              Completed
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      <!-- Main Content -->
-      <main class="flex-1 p-6">
-        <!-- Search Bar -->
-        <div class="mb-6">
-          <div class="relative">
-            <svg
-              class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="text"
-              :value="store.searchQuery"
-              class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Search tasks..."
-              @input="store.setSearch(($event.target as HTMLInputElement).value)"
-            />
-          </div>
-        </div>
-
-        <!-- Add Task Button -->
-        <div class="mb-4">
-          <button
-            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            @click="openNewTaskForm"
-          >
-            + New Task
-          </button>
-        </div>
-
-        <!-- Task Form -->
-        <div v-if="showForm" class="mb-6">
-          <TaskForm
-            :task="editingTask"
-            :is-edit="!!editingTask"
-            @submit="handleSubmit"
-            @cancel="cancelForm"
-          />
-        </div>
-
-        <!-- Task List -->
-        <TaskList
-          v-if="['next', 'ready', 'agenda', 'forecast'].includes(currentView)"
-          :tasks="store.filteredTasks"
-          :loading="store.loading"
-          :active-task-uuid="
-            activeTaskIndex >= 0 ? store.filteredTasks[activeTaskIndex]?.uuid : undefined
-          "
-          :tracking-uuid="trackingTask?.uuid"
-          @complete="store.completeTask"
-          @delete="handleDelete"
-          @edit="handleEdit"
-          @toggle-timer="handleToggleTimer"
-          @bulk-complete="handleBulkComplete"
-          @bulk-delete="handleBulkDelete"
-        />
-
-        <!-- Kanban View -->
-        <KanbanView v-else-if="currentView === 'kanban'" @edit="handleEdit" />
-
-        <!-- Calendar View -->
-        <CalendarView v-else-if="currentView === 'calendar'" @edit="handleEdit" />
-
-        <!-- Done View -->
-        <DoneView v-else-if="currentView === 'done'" @edit="handleEdit" />
-
-        <!-- Error Toast -->
+        <!-- Header -->
         <div
-          v-if="store.error"
-          class="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg"
+          class="flex items-center justify-between px-6 pt-5 pb-4 shrink-0"
+          :style="{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}` }"
         >
-          {{ store.error }}
-          <button class="ml-2" @click="store.error = null">×</button>
+          <div>
+            <h1 class="text-xl font-black" :style="{ color: 'var(--txt-primary)' }">待办事项</h1>
+            <p class="text-xs mt-0.5" :style="{ color: 'var(--txt-muted)' }">
+              {{ activeCount > 0 ? `${activeCount} 项待完成` : '全部完成了' }}
+            </p>
+          </div>
+
+          <!-- 视图切换 -->
+          <div class="flex gap-1">
+            <button
+              v-for="view in [
+                { key: 'next', label: '列表' },
+                { key: 'kanban', label: '看板' },
+                { key: 'calendar', label: '日历' },
+                { key: 'done', label: '已完成' },
+              ]"
+              :key="view.key"
+              class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
+              :class="currentView === view.key
+                ? (isDark ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
+                : (isDark ? 'text-white/40 hover:bg-white/10 hover:text-white' : 'text-gray-500 hover:bg-gray-100')"
+              @click="currentView = view.key as ViewType"
+            >{{ view.label }}</button>
+          </div>
         </div>
-      </main>
+
+        <!-- 内容区 -->
+        <div class="flex-1 overflow-y-auto px-6 pt-4 pb-6">
+          <!-- 列表视图 -->
+          <template v-if="currentView === 'next'">
+            <!-- 添加任务 -->
+            <div class="mb-4">
+              <AddTask @add="handleAddTask" />
+            </div>
+
+            <!-- 空状态 -->
+            <div
+              v-if="store.pendingTasks.length === 0"
+              class="flex flex-col items-center justify-center py-20 text-center"
+            >
+              <div
+                class="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                :style="{
+                  background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(99,102,241,0.12)',
+                  backdropFilter: 'blur(12px)',
+                  border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(99,102,241,0.18)',
+                }"
+              >
+                <Sparkles
+                  :size="26"
+                  :style="{ color: isDark ? 'rgba(255,255,255,0.45)' : '#818CF8' }"
+                />
+              </div>
+              <p class="text-base font-black mb-1" :style="{ color: 'var(--txt-primary)' }">
+                今日任务全部完成
+              </p>
+              <p class="text-sm" :style="{ color: 'var(--txt-muted)' }">
+                再添加一些，继续保持状态
+              </p>
+            </div>
+
+            <!-- 任务卡片列表 -->
+            <template v-else>
+              <TaskCard
+                v-for="(task, i) in store.pendingTasks"
+                :key="task.uuid"
+                :task="task"
+                :index="i"
+                :all-projects="allProjects"
+                :all-tags="allTags"
+                @complete="handleCompleteTask"
+                @update="handleUpdateTask"
+                @delete="handleDeleteTask"
+                @add-project="handleAddProject"
+                @delete-project="handleDeleteProject"
+                @add-tag="handleAddTag"
+                @delete-tag="handleDeleteTag"
+              />
+            </template>
+          </template>
+
+          <!-- 看板视图 -->
+          <KanbanView v-else-if="currentView === 'kanban'" />
+
+          <!-- 日历视图 -->
+          <CalendarView v-else-if="currentView === 'calendar'" />
+
+          <!-- 已完成视图 -->
+          <DoneView v-else-if="currentView === 'done'" />
+        </div>
+      </div>
     </div>
 
-    <!-- Help Modal -->
+    <!-- 完成弹窗 -->
+    <CompletionModal
+      v-if="doneInfo"
+      :description="doneInfo.description"
+      :today-count="doneInfo.todayCount"
+      :total-done="doneInfo.totalDone"
+      @close="doneInfo = null"
+    />
+
+    <!-- 错误提示 -->
     <div
-      v-if="showHelp"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      @click.self="showHelp = false"
+      v-if="store.error"
+      class="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50"
     >
-      <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-        <h2 class="text-lg font-bold mb-4">Keyboard Shortcuts</h2>
-        <div class="space-y-2">
-          <div class="flex justify-between">
-            <span class="text-gray-600 dark:text-gray-400">New task</span>
-            <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">n</kbd>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600 dark:text-gray-400">Next task</span>
-            <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">j</kbd>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600 dark:text-gray-400">Previous task</span>
-            <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">k</kbd>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600 dark:text-gray-400">Complete task</span>
-            <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">x</kbd>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600 dark:text-gray-400">Edit task</span>
-            <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">Enter</kbd>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600 dark:text-gray-400">Close modal</span>
-            <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">Escape</kbd>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600 dark:text-gray-400">Undo</span>
-            <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">Ctrl+Z</kbd>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600 dark:text-gray-400">Show help</span>
-            <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">?</kbd>
-          </div>
-        </div>
-        <button
-          class="mt-4 w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-          @click="showHelp = false"
-        >
-          Close
-        </button>
-      </div>
+      {{ store.error }}
+      <button class="ml-2" @click="store.error = null">×</button>
     </div>
   </div>
 </template>

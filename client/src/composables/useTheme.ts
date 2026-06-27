@@ -14,6 +14,7 @@ export function useTheme() {
     const dark = theme.value === 'dark' || (theme.value === 'system' && getSystemTheme())
     isDark.value = dark
     document.documentElement.classList.toggle('dark', dark)
+    document.documentElement.classList.toggle('light', !dark)
   }
 
   function setTheme(newTheme: Theme) {

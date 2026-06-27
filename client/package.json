@@ -14,10 +14,11 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@lucide/vue": "^1.21.0",
     "@tailwindcss/vite": "^4.3.1",
+    "@vueuse/motion": "^3.0.3",
     "axios": "^1.18.1",
     "gsap": "^3.15.0",
-    "howler": "^2.2.4",
     "pinia": "^3.0.4",
     "tailwindcss": "^4.3.1",
     "vue": "^3.5.38",

@@ -1,1 +1,6 @@
-@import 'tailwindcss';
+@import "tailwindcss";
+@import "./styles/theme-variables.css";
+@import "./styles/mesh-backgrounds.css";
+@import "./styles/glass.css";
+@import "./styles/card-styles.css";
+@import "./styles/animations.css";

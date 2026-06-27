@@ -1,0 +1,43 @@
+/* 动画 Keyframes — 从 design-tokens.md 精确提取 */
+
+@keyframes taskShake {
+  0%,100% { transform: translateX(0) rotate(0deg); }
+  16%      { transform: translateX(-9px) rotate(-2.5deg); }
+  33%      { transform: translateX(8px)  rotate(2deg); }
+  50%      { transform: translateX(-6px) rotate(-1.5deg); }
+  66%      { transform: translateX(5px)  rotate(1deg); }
+  83%      { transform: translateX(-3px); }
+}
+
+@keyframes checkPop {
+  0%   { transform: scale(0) rotate(-20deg); opacity:0; }
+  60%  { transform: scale(1.4) rotate(5deg);  opacity:1; }
+  100% { transform: scale(1)  rotate(0deg);   opacity:1; }
+}
+
+@keyframes floatStar {
+  0%,100% { transform: translateY(0px) rotate(0deg); opacity:0.7; }
+  50%      { transform: translateY(-6px) rotate(15deg); opacity:1; }
+}
+
+@keyframes pulseRing {
+  0%,100% { transform: scale(1); opacity:0.45; }
+  50%      { transform: scale(1.1); opacity:0.75; }
+}
+
+@keyframes fadeInUp {
+  from { opacity:0; transform:translateY(14px) scale(0.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+@keyframes fadeOutDown {
+  from { opacity:1; transform:scale(1); }
+  to   { opacity:0; transform:scale(0.93); }
+}
+
+/* 工具类 */
+.shaking   { animation: taskShake 0.50s cubic-bezier(.36,.07,.19,.97) both; }
+.check-pop { animation: checkPop  0.28s ease forwards; }
+.pulse-ring { animation: pulseRing 2.4s ease-in-out infinite; }
+.fade-in-up { animation: fadeInUp 0.30s cubic-bezier(0.16,1,0.3,1) both; }
+.fade-out-down { animation: fadeOutDown 0.30s cubic-bezier(0.16,1,0.3,1) both; }

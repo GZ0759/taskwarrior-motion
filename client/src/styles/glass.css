@@ -1,0 +1,75 @@
+/* 玻璃拟态工具类 — 从 design-tokens.md 精确提取 */
+
+/* 面板级玻璃（左/右面板） */
+.glass-dark {
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+}
+
+.glass-light {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.80);
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+}
+
+/* 卡片级玻璃 */
+.glass-card-dark {
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset;
+}
+
+.glass-card-light {
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset;
+}
+
+/* 输入框级玻璃 */
+.glass-input-dark {
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 16px;
+}
+
+.glass-input-light {
+  background: rgba(255,255,255,0.60);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.75);
+  border-radius: 16px;
+}
+
+/* 展开编辑区 */
+.glass-edit-dark {
+  background: rgba(0,0,0,0.22);
+  backdrop-filter: blur(8px);
+}
+
+.glass-edit-light {
+  background: rgba(0,0,0,0.08);
+  backdrop-filter: blur(8px);
+}
+
+/* 遮罩层 */
+.glass-overlay {
+  background: rgba(0,0,0,0.70);
+  backdrop-filter: blur(14px);
+}
+
+/* 项目选择器背景 */
+.glass-picker {
+  background: rgba(0,0,0,0.22);
+  border-radius: 12px;
+}
+
+/* 标签输入区 */
+.glass-tag-input {
+  background: rgba(255,255,255,0.10);
+  border-radius: 12px;
+}
