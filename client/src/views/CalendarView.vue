@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import type { Task } from '@/types/task'
@@ -7,12 +7,22 @@ import type { Task } from '@/types/task'
 const store = useTaskStore()
 const { isDark } = useTheme()
 
-type CalendarView = 'month' | 'week' | 'day'
+type CalendarView = 'month' | 'week'
 
 const currentView = ref<CalendarView>('month')
 const currentDate = ref(new Date())
 
-const viewOptions: CalendarView[] = ['month', 'week', 'day']
+const viewOptions: CalendarView[] = ['month', 'week']
+
+// 初始加载
+onMounted(() => {
+  store.fetchCalendarTasks()
+})
+
+// 切换视图时重新获取
+watch(currentView, () => {
+  store.fetchCalendarTasks()
+})
 const daysOfWeek = ['日', '一', '二', '三', '四', '五', '六']
 
 const currentMonth = computed(() => {
@@ -137,7 +147,7 @@ const emit = defineEmits<{
               : ''"
             :style="currentView !== view ? { color: 'var(--txt-muted)' } : {}"
             @click="currentView = view"
-          >{{ view === 'month' ? '月' : view === 'week' ? '周' : '日' }}</button>
+          >{{ view === 'month' ? '月' : '周' }}</button>
         </div>
 
         <!-- 导航 -->
@@ -302,18 +312,6 @@ const emit = defineEmits<{
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- 日视图占位 -->
-    <div
-      v-else
-      class="rounded-2xl p-8 text-center"
-      :style="{
-        background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.30)',
-        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.50)'}`,
-      }"
-    >
-      <p class="text-sm" :style="{ color: 'var(--txt-muted)' }">日视图开发中</p>
     </div>
   </div>
 </template>
