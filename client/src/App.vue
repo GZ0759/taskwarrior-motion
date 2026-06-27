@@ -10,11 +10,11 @@ import ProjectProgress from '@/components/ProjectProgress.vue'
 import TaskCard from '@/components/TaskCard.vue'
 import AddTask from '@/components/AddTask.vue'
 import CompletionModal from '@/components/CompletionModal.vue'
-import TaskList from '@/components/TaskList.vue'
 import KanbanView from '@/views/KanbanView.vue'
 import CalendarView from '@/views/CalendarView.vue'
 import DoneView from '@/views/DoneView.vue'
 import type { Task, UpdateTaskRequest } from '@/types/task'
+import { getTodayStr, taskDateToISO } from '@/utils/date'
 
 const store = useTaskStore()
 const { theme, isDark, toggleTheme } = useTheme()
@@ -45,12 +45,11 @@ const allTags = computed(() => {
 })
 
 // 今日完成数和累计完成数
-const todayStr = new Date().toISOString().split('T')[0]
 const todayCount = computed(() => {
+  const today = getTodayStr()
   return store.completedTasks.filter((t) => {
     if (!t.end) return false
-    const dateStr = t.end.slice(0, 4) + '-' + t.end.slice(4, 6) + '-' + t.end.slice(6, 8)
-    return dateStr === todayStr
+    return taskDateToISO(t.end) === today
   }).length
 })
 const totalDone = computed(() => store.completedTasks.length)
@@ -312,10 +311,10 @@ function handleDeleteTag(name: string) {
                 />
               </div>
               <p class="text-base font-black mb-1" :style="{ color: 'var(--txt-primary)' }">
-                今日任务全部完成
+                暂无待办任务
               </p>
               <p class="text-sm" :style="{ color: 'var(--txt-muted)' }">
-                再添加一些，继续保持状态
+                添加一个吧
               </p>
             </div>
 

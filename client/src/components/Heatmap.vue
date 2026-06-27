@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
+import { getTodayStr, taskDateToISO } from '@/utils/date'
 
 const store = useTaskStore()
 const { isDark } = useTheme()
@@ -11,16 +12,12 @@ function fmt(d: Date): string {
   return d.toISOString().split('T')[0]
 }
 
-const today = new Date()
-const todayStr = fmt(today)
-
 // 统计每日完成数
 const countMap = computed(() => {
   const map: Record<string, number> = {}
   store.completedTasks.forEach((t) => {
     if (t.end) {
-      // end 格式: "20260627T040146Z" → 转为 "2026-06-27"
-      const dateStr = t.end.slice(0, 4) + '-' + t.end.slice(4, 6) + '-' + t.end.slice(6, 8)
+      const dateStr = taskDateToISO(t.end)
       map[dateStr] = (map[dateStr] ?? 0) + 1
     }
   })
@@ -29,15 +26,16 @@ const countMap = computed(() => {
 
 // 35 天格子数据
 const cells = computed(() => {
+  const today = getTodayStr()
   return Array.from({ length: 35 }, (_, i) => {
-    const d = new Date(today)
+    const d = new Date()
     d.setDate(d.getDate() - (34 - i))
     const ds = fmt(d)
     return {
       date: ds,
       dayNum: d.getDate(),
       count: countMap.value[ds] ?? 0,
-      isToday: ds === todayStr,
+      isToday: ds === today,
     }
   })
 })
@@ -48,7 +46,7 @@ const firstDow = computed(() => {
 })
 
 // 今日完成数
-const todayCount = computed(() => countMap.value[todayStr] ?? 0)
+const todayCount = computed(() => countMap.value[getTodayStr()] ?? 0)
 
 // 累计完成数
 const totalDone = computed(() => store.completedTasks.length)

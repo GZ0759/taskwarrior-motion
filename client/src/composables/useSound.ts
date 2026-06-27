@@ -8,6 +8,20 @@ if (saved !== null) {
   soundEnabled.value = saved === 'true'
 }
 
+// 模块级 AudioContext 单例
+let audioCtx: AudioContext | null = null
+
+function getAudioContext(): AudioContext {
+  if (!audioCtx) {
+    audioCtx = new AudioContext()
+  }
+  // 处理 suspended 状态（浏览器自动暂停策略）
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume()
+  }
+  return audioCtx
+}
+
 // Web Audio API 合成音效 — 从 design-tokens.md 精确提取
 function playTone(
   startFreq: number,
@@ -18,7 +32,7 @@ function playTone(
 ) {
   if (!soundEnabled.value) return
   try {
-    const ctx = new AudioContext()
+    const ctx = getAudioContext()
     const gain = ctx.createGain()
     const osc = ctx.createOscillator()
     osc.connect(gain)
