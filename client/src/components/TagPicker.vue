@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Check, Plus, X } from '@lucide/vue'
 
 const props = defineProps<{
@@ -14,6 +14,13 @@ const emit = defineEmits<{
 }>()
 
 const newVal = ref('')
+const localAdded = ref<string[]>([])
+
+// 合并 options 和本地新增
+const allOptions = computed(() => {
+  const set = new Set([...props.options, ...localAdded.value])
+  return Array.from(set)
+})
 
 function toggle(tag: string) {
   const next = props.selected.includes(tag)
@@ -25,7 +32,8 @@ function toggle(tag: string) {
 function submit() {
   const v = newVal.value.trim()
   if (v) {
-    if (!props.options.includes(v)) {
+    if (!allOptions.value.includes(v)) {
+      localAdded.value.push(v)
       emit('add', v)
     }
     // 添加后自动选中（如果还没选中的话）
@@ -46,7 +54,7 @@ function remove(tag: string) {
   <div class="space-y-2">
     <!-- 标签列表 -->
     <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-      <div v-for="tag in options" :key="tag" class="flex items-center">
+      <div v-for="tag in allOptions" :key="tag" class="flex items-center">
         <button
           class="text-[10px] px-2.5 py-1 rounded-l-full font-semibold transition-all"
           :class="selected.includes(tag)

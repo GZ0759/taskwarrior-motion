@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Check, Plus, X } from '@lucide/vue'
 
 const props = defineProps<{
@@ -14,11 +14,19 @@ const emit = defineEmits<{
 }>()
 
 const newVal = ref('')
+const localAdded = ref<string[]>([])
+
+// 合并 options 和本地新增
+const allOptions = computed(() => {
+  const set = new Set([...props.options, ...localAdded.value])
+  return Array.from(set)
+})
 
 function submit() {
   const v = newVal.value.trim()
   if (v) {
-    if (!props.options.includes(v)) {
+    if (!allOptions.value.includes(v)) {
+      localAdded.value.push(v)
       emit('add', v)
     }
     // 添加后自动选中
@@ -49,7 +57,7 @@ function remove(opt: string) {
       >无项目</button>
 
       <!-- 项目列表 -->
-      <div v-for="opt in options" :key="opt" class="flex items-center gap-1">
+      <div v-for="opt in allOptions" :key="opt" class="flex items-center gap-1">
         <button
           class="flex-1 text-left px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
           :class="value === opt
