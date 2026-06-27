@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { Sparkles, Volume2, VolumeX, Sun, Moon, Monitor } from '@lucide/vue'
+import { Sparkles, Volume2, VolumeX, Sun, Moon, SunMoon } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import { useKeyboard } from '@/composables/useKeyboard'
@@ -11,6 +11,7 @@ import TaskCard from '@/components/TaskCard.vue'
 import AddTask from '@/components/AddTask.vue'
 import CompletionModal from '@/components/CompletionModal.vue'
 import TaskEditModal from '@/components/TaskEditModal.vue'
+import HelpModal from '@/components/HelpModal.vue'
 import KanbanView from '@/views/KanbanView.vue'
 import CalendarView from '@/views/CalendarView.vue'
 import DoneView from '@/views/DoneView.vue'
@@ -100,7 +101,7 @@ const subtitle = computed(() => {
 const themeIcon = computed(() => {
   if (theme.value === 'light') return Sun
   if (theme.value === 'dark') return Moon
-  return Monitor
+  return SunMoon
 })
 
 // 键盘快捷键
@@ -141,7 +142,7 @@ useKeyboard({
     editingTask.value = null
   },
   onShowHelp: () => {
-    // TODO: 显示帮助弹窗
+    showHelp.value = !showHelp.value
   },
   onUndo: () => {
     store.undo()
@@ -156,6 +157,7 @@ onMounted(() => {
 
 // 视图切换时获取对应数据
 watch(currentView, (view) => {
+  selectedIndex.value = -1
   switch (view) {
     case 'next':
       store.fetchPendingTasks()
@@ -178,18 +180,15 @@ function handleAddTask(description: string) {
 }
 
 // 完成任务（带动画和弹窗）
-function handleCompleteTask(uuid: string, desc: string) {
-  store.completeTask(uuid)
-  // 计算统计数据
-  const newTodayCount = todayCount.value + 1
-  const newTotalDone = totalDone.value + 1
-  setTimeout(() => {
-    doneInfo.value = {
-      description: desc,
-      todayCount: newTodayCount,
-      totalDone: newTotalDone,
-    }
-  }, 60)
+async function handleCompleteTask(uuid: string, desc: string) {
+  await store.completeTask(uuid)
+  // 等待 stats 更新后再弹窗
+  await store.fetchStats()
+  doneInfo.value = {
+    description: desc,
+    todayCount: todayCount.value,
+    totalDone: totalDone.value,
+  }
 }
 
 // 更新任务
@@ -204,6 +203,7 @@ function handleDeleteTask(uuid: string) {
 
 // 编辑任务弹窗
 const editingTask = ref<Task | null>(null)
+const showHelp = ref(false)
 
 function handleEditFromView(task: Task) {
   editingTask.value = task
@@ -441,6 +441,12 @@ function handleDeleteTag(name: string) {
       @delete-project="handleDeleteProject"
       @add-tag="handleAddTag"
       @delete-tag="handleDeleteTag"
+    />
+
+    <!-- 帮助弹窗 -->
+    <HelpModal
+      :show="showHelp"
+      @close="showHelp = false"
     />
 
     <!-- 错误提示 -->
