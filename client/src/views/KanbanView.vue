@@ -66,8 +66,6 @@ const emit = defineEmits<{
 
 <template>
   <div class="h-full flex flex-col">
-    <h2 class="text-lg font-black mb-4 shrink-0" :style="{ color: 'var(--txt-primary)' }">看板</h2>
-
     <div class="flex-1 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 min-h-0">
       <div
         v-for="column in getColumnTasks"

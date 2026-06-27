@@ -28,9 +28,7 @@ const emit = defineEmits<{
 
 <template>
   <div class="h-full flex flex-col min-h-0">
-    <div class="flex items-center justify-between mb-4 shrink-0">
-      <h2 class="text-lg font-black" :style="{ color: 'var(--txt-primary)' }">已完成</h2>
-
+    <div class="flex items-center justify-end mb-4 shrink-0">
       <div class="flex items-center gap-2">
         <span class="text-xs" :style="{ color: 'var(--txt-muted)' }">显示最近</span>
         <select

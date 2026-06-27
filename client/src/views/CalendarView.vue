@@ -129,9 +129,7 @@ const emit = defineEmits<{
 <template>
   <div class="h-full flex flex-col min-h-0">
     <!-- 标题栏 -->
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-black" :style="{ color: 'var(--txt-primary)' }">日历</h2>
-
+    <div class="flex items-center justify-end mb-4">
       <div class="flex items-center gap-4">
         <!-- 视图切换 -->
         <div

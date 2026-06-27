@@ -69,6 +69,17 @@ const todayTaskCount = computed(() => {
   return store.calendarTasks.filter(t => t.due && taskDateToISO(t.due) === today).length
 })
 
+// 右侧标题（跟随 tab 变化）
+const title = computed(() => {
+  switch (currentView.value) {
+    case 'next': return '待办事项'
+    case 'kanban': return '看板'
+    case 'calendar': return '日历'
+    case 'done': return '已完成'
+    default: return '待办事项'
+  }
+})
+
 // 右侧副标题（跟随 tab 语境）
 const subtitle = computed(() => {
   switch (currentView.value) {
@@ -307,7 +318,7 @@ function handleDeleteTag(name: string) {
           :style="{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}` }"
         >
           <div>
-            <h1 class="text-xl font-black" :style="{ color: 'var(--txt-primary)' }">待办事项</h1>
+            <h1 class="text-xl font-black" :style="{ color: 'var(--txt-primary)' }">{{ title }}</h1>
             <p class="text-xs mt-0.5" :style="{ color: 'var(--txt-muted)' }">
               {{ subtitle }}
             </p>
