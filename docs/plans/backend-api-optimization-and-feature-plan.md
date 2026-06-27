@@ -1,6 +1,6 @@
-# taskwarrior-motion 修复与完善计划
+# taskwarrior-motion 后端优化与功能完善计划
 
-> **目标**：修复已知问题、清理死代码、补全缺失功能、统一技术方案。
+> **目标**：优化后端 API 架构、修复已知问题、清理死代码、补全缺失功能。
 > **用户场景**：纯自用本地工具，记录待办事项。
 
 ---
@@ -11,6 +11,8 @@
 |------|------|
 | 使用场景 | 纯自用，本地运行 |
 | 后端修复 | 全部修掉（Mutex、全量导出、单任务查询） |
+| API 架构 | 增加视图专用接口（pending/completed/calendar/stats） |
+| 搜索功能 | 移除后端 search 参数（前端本地搜索） |
 | 自动补全 | ✅ 接入 |
 | 时间追踪 | ✅ 接入 |
 | 上下文管理 | ❌ 删除 |
@@ -140,6 +142,65 @@
 3. 添加基本的 `tracing` 日志（请求日志 + 错误日志）
 
 **验收**：`cargo clippy -- -D warnings` 无警告
+
+---
+
+#### 任务 8.1：增加视图专用 API 接口
+
+**问题**：当前所有视图都调 `GET /api/tasks` 获取全部任务，前端过滤。浪费带宽和内存。
+
+**新增接口**：
+
+| 接口 | 用途 | taskwarrior 命令 |
+|------|------|-----------------|
+| `GET /api/tasks/pending` | 待办 + 看板 | `task status:pending export` |
+| `GET /api/tasks/completed?days=14` | 已完成 | `task status:completed end.after:... export` |
+| `GET /api/tasks/calendar?month=6` | 日历 | `task due.any: export`（过滤有 due 的） |
+| `GET /api/stats` | 热力图 + 项目进度 | 统计数据，不返回完整任务 |
+
+**`GET /api/stats` 返回格式**：
+```json
+{
+  "heatmap": { "2026-06-27": 5, "2026-06-26": 3 },
+  "projects": { "Design System": { "total": 10, "done": 6 } },
+  "todayCount": 5,
+  "totalDone": 30,
+  "pendingCount": 8
+}
+```
+
+**步骤**：
+1. 在 `taskwarrior.rs` 中添加 `export_pending()`、`export_completed(days)`、`export_with_due()` 方法
+2. 在 `routes.rs` 中添加 4 个新 handler
+3. 在 `main.rs` 中注册新路由
+4. 移除 `get_tasks` 中的 `search` 参数（前端本地搜索）
+
+**验收**：
+- `GET /api/tasks/pending` 只返回 pending 任务
+- `GET /api/tasks/completed?days=14` 只返回最近 14 天完成的任务
+- `GET /api/tasks/calendar?month=6` 只返回有 due 日期的任务
+- `GET /api/stats` 返回统计数据，不返回完整任务
+
+---
+
+#### 任务 8.2：前端接入视图专用接口
+
+**步骤**：
+1. 在 `api/taskwarrior.ts` 中添加新接口调用
+2. 在 `stores/task.ts` 中添加：
+   - `fetchPendingTasks()` — 待办/看板视图用
+   - `fetchCompletedTasks(days)` — 已完成视图用
+   - `fetchCalendarTasks(month)` — 日历视图用
+   - `fetchStats()` — 热力图/项目进度用
+3. 各视图组件改用对应接口
+4. mutations 后只更新本地状态，不重新请求全部数据
+
+**验收**：
+- 待办/看板只获取 pending 任务
+- 已完成只获取最近 N 天的完成任务
+- 日历只获取有 due 日期的任务
+- 热力图/项目进度用 stats 接口
+- 操作后不重新请求全部数据
 
 ---
 
@@ -305,10 +366,13 @@
 
 ```
 阶段一（Bug 修复 + 清理）  ← 无依赖，立即开始
-  任务 1-4
+  任务 1-4, 4.1
 
-阶段二（后端修复）          ← 无依赖，可与阶段一并行
-  任务 5-8
+阶段二（后端修复 + API 优化）← 无依赖，可与阶段一并行
+  任务 5-8（后端修复）
+  任务 8.1（视图专用 API）
+  任务 8.2（前端接入新 API）
+  → 8.1 完成后做 8.2
 
 阶段三（功能补全）          ← 依赖阶段一
   任务 9（自动补全）
@@ -322,7 +386,7 @@
 阶段四（动画统一）          ← 依赖阶段一
   任务 15
 
-阶段五（Store 优化）        ← 依赖阶段一
+阶段五（Store 优化）        ← 依赖阶段一 + 8.2
   任务 16
 
 阶段六（测试）              ← 依赖所有功能完成
@@ -336,9 +400,10 @@
 ## 验收标准
 
 1. **死代码清理**：无未使用的文件和 import
-2. **后端性能**：无全量导出检查，无全局 Mutex
-3. **功能完整**：自动补全、时间追踪、键盘快捷键、周视图均可用
-4. **动画统一**：所有动画使用 GSAP，无 setTimeout 链
-5. **日期统一**：所有日期解析使用 `utils/date.ts`
-6. **测试覆盖**：核心功能有测试，全部通过
-7. **代码质量**：`cargo clippy` 0 warnings，`pnpm lint` 0 warnings
+2. **后端性能**：无全量导出检查，无全局 Mutex，视图专用接口
+3. **API 架构**：每个视图有专用接口，stats 接口返回统计数据
+4. **功能完整**：自动补全、时间追踪、键盘快捷键、周视图均可用
+5. **动画统一**：所有动画使用 GSAP，无 setTimeout 链
+6. **日期统一**：所有日期解析使用 `utils/date.ts`
+7. **测试覆盖**：核心功能有测试，全部通过
+8. **代码质量**：`cargo clippy` 0 warnings，`pnpm lint` 0 warnings
