@@ -394,9 +394,6 @@ function handleDeleteTag(name: string) {
                 @complete="handleCompleteTask"
                 @edit="handleEditFromCard"
                 @delete="handleDeleteTask"
-                @delete-project="handleDeleteProject"
-                @add-tag="handleAddTag"
-                @delete-tag="handleDeleteTag"
               />
             </template>
           </template>

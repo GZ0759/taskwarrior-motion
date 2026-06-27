@@ -56,6 +56,14 @@ function moveToColumn(task: Task, targetColumn: string) {
         store.stopTask(task.uuid)
       }
       break
+    case 'on-hold':
+      // 设置 wait 为明天
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const waitDate = tomorrow.toISOString().split('T')[0].replace(/-/g, '') + 'T000000Z'
+      store.updateTask(task.uuid, { wait: waitDate })
+      setTimeout(() => store.fetchPendingTasks(), 100)
+      break
   }
 }
 
@@ -131,7 +139,7 @@ const emit = defineEmits<{
             <!-- 操作按钮 -->
             <div class="flex gap-1.5 mt-2">
               <button
-                v-if="column.key !== 'in-progress' && task.status === 'pending'"
+                v-if="column.key !== 'in-progress' && column.key !== 'on-hold' && task.status === 'pending'"
                 class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors cursor-pointer"
                 :style="{
                   background: isDark ? 'rgba(59,130,246,0.20)' : 'rgba(59,130,246,0.10)',
@@ -140,7 +148,7 @@ const emit = defineEmits<{
                 @click="moveToColumn(task, 'in-progress')"
               >开始</button>
               <button
-                v-if="column.key !== 'done' && task.status === 'pending'"
+                v-if="column.key !== 'done' && column.key !== 'on-hold' && task.status === 'pending'"
                 class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors cursor-pointer"
                 :style="{
                   background: isDark ? 'rgba(34,197,94,0.20)' : 'rgba(34,197,94,0.10)',
@@ -148,6 +156,15 @@ const emit = defineEmits<{
                 }"
                 @click="moveToColumn(task, 'done')"
               >完成</button>
+              <button
+                v-if="column.key !== 'on-hold' && task.status === 'pending'"
+                class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors cursor-pointer"
+                :style="{
+                  background: isDark ? 'rgba(234,179,8,0.20)' : 'rgba(234,179,8,0.10)',
+                  color: isDark ? '#fde68a' : '#eab308',
+                }"
+                @click="moveToColumn(task, 'on-hold')"
+              >暂停</button>
               <button
                 class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors cursor-pointer"
                 :style="{

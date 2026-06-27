@@ -5,6 +5,7 @@ import { Check, Plus, X } from '@lucide/vue'
 const props = defineProps<{
   value: string
   options: string[]
+  isDark: boolean
 }>()
 
 const emit = defineEmits<{
@@ -65,14 +66,19 @@ function onBlur() {
 </script>
 
 <template>
-  <div class="rounded-xl overflow-hidden glass-picker">
+  <div
+    class="rounded-xl overflow-hidden"
+    :style="{
+      background: isDark ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.06)',
+    }"
+  >
     <div class="p-1.5 space-y-0.5 max-h-36 overflow-y-auto">
       <!-- 无项目 -->
       <button
         class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
         :class="!value
-          ? 'bg-white text-gray-800'
-          : 'text-white/55 hover:bg-white/10 hover:text-white/80'"
+          ? (isDark ? 'bg-white text-gray-800' : 'bg-indigo-500 text-white')
+          : (isDark ? 'text-white/55 hover:bg-white/10 hover:text-white/80' : 'text-gray-600 hover:bg-gray-100')"
         @click="select('')"
       >无项目</button>
 
@@ -81,15 +87,16 @@ function onBlur() {
         <button
           class="flex-1 text-left px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
           :class="value === opt
-            ? 'bg-white text-gray-800'
-            : 'text-white/70 hover:bg-white/10 hover:text-white/90'"
+            ? (isDark ? 'bg-white text-gray-800' : 'bg-indigo-500 text-white')
+            : (isDark ? 'text-white/70 hover:bg-white/10 hover:text-white/90' : 'text-gray-600 hover:bg-gray-100')"
           @click="select(opt)"
         >
           <Check v-if="value === opt" :size="9" :stroke-width="3" />
           {{ opt }}
         </button>
         <button
-          class="p-1.5 rounded-lg text-white/25 hover:text-red-400 hover:bg-white/8 transition-colors shrink-0"
+          class="p-1.5 rounded-lg transition-colors shrink-0"
+          :class="isDark ? 'text-white/25 hover:text-red-400 hover:bg-white/8' : 'text-gray-400 hover:text-red-500 hover:bg-gray-100'"
           @click="remove(opt)"
         >
           <X :size="10" />
@@ -99,23 +106,29 @@ function onBlur() {
       <!-- 无匹配提示 -->
       <div
         v-if="newVal && filteredOptions.length === 0"
-        class="px-3 py-1.5 text-xs text-white/40"
+        class="px-3 py-1.5 text-xs"
+        :style="{ color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)' }"
       >按回车添加「{{ newVal }}」</div>
     </div>
 
     <!-- 添加项目 -->
-    <div class="flex items-center gap-1 px-2 pb-2 pt-1 border-t border-white/10">
+    <div
+      class="flex items-center gap-1 px-2 pb-2 pt-1"
+      :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'}` }"
+    >
       <input
         v-model="newVal"
         placeholder="添加项目…"
-        class="flex-1 bg-transparent text-xs text-white placeholder-white/30 outline-none py-1 px-1"
+        class="flex-1 bg-transparent text-xs outline-none py-1 px-1"
+        :class="isDark ? 'text-white placeholder-white/30' : 'text-gray-800 placeholder-gray-400'"
         @input="onInput"
         @focus="showSuggestions = true"
         @blur="onBlur"
         @keydown.enter="submit"
       />
       <button
-        class="p-1.5 rounded-lg text-white/40 hover:text-white transition-colors"
+        class="p-1.5 rounded-lg transition-colors"
+        :class="isDark ? 'text-white/40 hover:text-white' : 'text-gray-400 hover:text-gray-800'"
         @click="submit"
       >
         <Plus :size="12" />

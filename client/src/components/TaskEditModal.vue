@@ -168,6 +168,7 @@ function handleDelete() {
           <ProjectPicker
             :value="editProject"
             :options="allProjects"
+            :is-dark="isDark"
             @update:value="editProject = $event"
             @add="emit('addProject', $event)"
             @delete="emit('deleteProject', $event)"
@@ -182,6 +183,7 @@ function handleDelete() {
           <TagPicker
             :selected="editTags"
             :options="allTags"
+            :is-dark="isDark"
             @update:selected="editTags = $event"
             @add="emit('addTag', $event)"
             @delete="emit('deleteTag', $event)"
