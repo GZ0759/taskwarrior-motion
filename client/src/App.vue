@@ -58,6 +58,35 @@ const totalDone = computed(() => store.completedTasks.length)
 // 活跃任务数
 const activeCount = computed(() => store.pendingTasks.length)
 
+// 看板统计
+const kanbanStats = computed(() => {
+  const pending = store.tasks.filter(t => t.status === 'pending' && !t.start).length
+  const inProgress = store.tasks.filter(t => t.status === 'pending' && t.start).length
+  return { pending, inProgress }
+})
+
+// 今日任务数（日历用）
+const todayTaskCount = computed(() => {
+  const today = new Date().toISOString().split('T')[0]
+  return store.tasks.filter(t => t.due && t.due.startsWith(today)).length
+})
+
+// 右侧副标题（跟随 tab 语境）
+const subtitle = computed(() => {
+  switch (currentView.value) {
+    case 'next':
+      return `${activeCount.value} 项待完成`
+    case 'kanban':
+      return `${kanbanStats.value.pending} 个待办 · ${kanbanStats.value.inProgress} 个进行中`
+    case 'calendar':
+      return `今天 ${todayTaskCount.value} 个任务`
+    case 'done':
+      return `共完成 ${totalDone.value} 个`
+    default:
+      return ''
+  }
+})
+
 // 主题图标
 const themeIcon = computed(() => {
   if (theme.value === 'light') return Sun
@@ -229,7 +258,7 @@ function handleDeleteTag(name: string) {
           <div>
             <h1 class="text-xl font-black" :style="{ color: 'var(--txt-primary)' }">待办事项</h1>
             <p class="text-xs mt-0.5" :style="{ color: 'var(--txt-muted)' }">
-              {{ activeCount > 0 ? `${activeCount} 项待完成` : '全部完成了' }}
+              {{ subtitle }}
             </p>
           </div>
 
