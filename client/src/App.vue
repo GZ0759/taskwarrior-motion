@@ -93,18 +93,45 @@ const themeIcon = computed(() => {
 })
 
 // 键盘快捷键
+const selectedIndex = ref(-1)
+
 useKeyboard({
   onNewTask: () => {
-    // AddTask 组件自己处理
+    // 聚焦到 AddTask 输入框（通过事件触发）
+    const input = document.querySelector('input[placeholder*="输入任务"]') as HTMLInputElement
+    input?.focus()
   },
-  onNextTask: () => {},
-  onPrevTask: () => {},
-  onCompleteTask: () => {},
-  onEditTask: () => {},
+  onNextTask: () => {
+    if (selectedIndex.value < store.pendingTasks.length - 1) {
+      selectedIndex.value++
+    }
+  },
+  onPrevTask: () => {
+    if (selectedIndex.value > 0) {
+      selectedIndex.value--
+    }
+  },
+  onCompleteTask: () => {
+    if (selectedIndex.value >= 0 && selectedIndex.value < store.pendingTasks.length) {
+      const task = store.pendingTasks[selectedIndex.value]
+      store.completeTask(task.uuid)
+      if (selectedIndex.value >= store.pendingTasks.length - 1) {
+        selectedIndex.value = Math.max(0, store.pendingTasks.length - 2)
+      }
+    }
+  },
+  onEditTask: () => {
+    if (selectedIndex.value >= 0 && selectedIndex.value < store.pendingTasks.length) {
+      editingTask.value = store.pendingTasks[selectedIndex.value]
+    }
+  },
   onCloseModal: () => {
     doneInfo.value = null
+    editingTask.value = null
   },
-  onShowHelp: () => {},
+  onShowHelp: () => {
+    // TODO: 显示帮助弹窗
+  },
   onUndo: () => {
     store.undo()
   },
