@@ -22,6 +22,15 @@ const allOptions = computed(() => {
   return Array.from(set)
 })
 
+// 过滤建议（只显示未选中的）
+const filteredOptions = computed(() => {
+  const available = allOptions.value.filter((t) => !props.selected.includes(t))
+  if (!newVal.value) return available
+  return available.filter((t) =>
+    t.toLowerCase().includes(newVal.value.toLowerCase())
+  )
+})
+
 function toggle(tag: string) {
   const next = props.selected.includes(tag)
     ? props.selected.filter((t) => t !== tag)
@@ -52,27 +61,33 @@ function remove(tag: string) {
 
 <template>
   <div class="space-y-2">
-    <!-- 标签列表 -->
-    <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-      <div v-for="tag in allOptions" :key="tag" class="flex items-center">
+    <!-- 已选标签 -->
+    <div v-if="selected.length > 0" class="flex flex-wrap gap-1.5">
+      <div v-for="tag in selected" :key="tag" class="flex items-center">
         <button
-          class="text-[10px] px-2.5 py-1 rounded-l-full font-semibold transition-all"
-          :class="selected.includes(tag)
-            ? 'bg-white text-gray-800'
-            : 'bg-white/12 text-white/65 hover:bg-white/20 hover:text-white/90'"
+          class="text-[10px] px-2.5 py-1 rounded-l-full font-semibold bg-white text-gray-800"
           @click="toggle(tag)"
         >
-          <Check v-if="selected.includes(tag)" :size="8" class="inline mr-0.5" :stroke-width="3" />
+          <Check :size="8" class="inline mr-0.5" :stroke-width="3" />
           {{ tag }}
         </button>
         <button
-          class="text-[10px] px-1.5 py-1 rounded-r-full transition-all"
-          :class="selected.includes(tag)
-            ? 'bg-white/80 text-gray-600 hover:bg-white'
-            : 'bg-white/8 text-white/30 hover:bg-white/18 hover:text-red-400'"
+          class="text-[10px] px-1.5 py-1 rounded-r-full bg-white/80 text-gray-600 hover:bg-white"
           @click="remove(tag)"
         >
           <X :size="8" />
+        </button>
+      </div>
+    </div>
+
+    <!-- 可选标签（过滤后） -->
+    <div v-if="filteredOptions.length > 0" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+      <div v-for="tag in filteredOptions" :key="tag" class="flex items-center">
+        <button
+          class="text-[10px] px-2.5 py-1 rounded-full font-semibold transition-all bg-white/12 text-white/65 hover:bg-white/20 hover:text-white/90"
+          @click="toggle(tag)"
+        >
+          {{ tag }}
         </button>
       </div>
     </div>

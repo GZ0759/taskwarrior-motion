@@ -14,12 +14,21 @@ const emit = defineEmits<{
 }>()
 
 const newVal = ref('')
+const showSuggestions = ref(false)
 const localAdded = ref<string[]>([])
 
 // 合并 options 和本地新增
 const allOptions = computed(() => {
   const set = new Set([...props.options, ...localAdded.value])
   return Array.from(set)
+})
+
+// 过滤建议
+const filteredOptions = computed(() => {
+  if (!newVal.value) return allOptions.value
+  return allOptions.value.filter((p) =>
+    p.toLowerCase().includes(newVal.value.toLowerCase())
+  )
 })
 
 function submit() {
@@ -33,14 +42,25 @@ function submit() {
     emit('update:value', v)
   }
   newVal.value = ''
+  showSuggestions.value = false
 }
 
 function select(opt: string) {
   emit('update:value', opt)
+  showSuggestions.value = false
 }
 
 function remove(opt: string) {
   emit('delete', opt)
+}
+
+function onInput() {
+  showSuggestions.value = true
+}
+
+function onBlur() {
+  // 延迟关闭，让 click 事件先触发
+  setTimeout(() => { showSuggestions.value = false }, 200)
 }
 </script>
 
@@ -56,8 +76,8 @@ function remove(opt: string) {
         @click="select('')"
       >无项目</button>
 
-      <!-- 项目列表 -->
-      <div v-for="opt in allOptions" :key="opt" class="flex items-center gap-1">
+      <!-- 项目列表（过滤后） -->
+      <div v-for="opt in filteredOptions" :key="opt" class="flex items-center gap-1">
         <button
           class="flex-1 text-left px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
           :class="value === opt
@@ -75,6 +95,12 @@ function remove(opt: string) {
           <X :size="10" />
         </button>
       </div>
+
+      <!-- 无匹配提示 -->
+      <div
+        v-if="newVal && filteredOptions.length === 0"
+        class="px-3 py-1.5 text-xs text-white/40"
+      >按回车添加「{{ newVal }}」</div>
     </div>
 
     <!-- 添加项目 -->
@@ -83,6 +109,9 @@ function remove(opt: string) {
         v-model="newVal"
         placeholder="添加项目…"
         class="flex-1 bg-transparent text-xs text-white placeholder-white/30 outline-none py-1 px-1"
+        @input="onInput"
+        @focus="showSuggestions = true"
+        @blur="onBlur"
         @keydown.enter="submit"
       />
       <button
