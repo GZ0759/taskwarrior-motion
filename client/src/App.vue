@@ -10,6 +10,7 @@ import ProjectProgress from '@/components/ProjectProgress.vue'
 import TaskCard from '@/components/TaskCard.vue'
 import AddTask from '@/components/AddTask.vue'
 import CompletionModal from '@/components/CompletionModal.vue'
+import TaskEditModal from '@/components/TaskEditModal.vue'
 import KanbanView from '@/views/KanbanView.vue'
 import CalendarView from '@/views/CalendarView.vue'
 import DoneView from '@/views/DoneView.vue'
@@ -162,12 +163,19 @@ function handleDeleteTask(uuid: string) {
   store.deleteTask(uuid)
 }
 
-// 从视图编辑任务（看板/日历/已完成）→ 切到待办视图并展开编辑
-const editingTaskUuid = ref<string | null>(null)
+// 编辑任务弹窗
+const editingTask = ref<Task | null>(null)
 
 function handleEditFromView(task: Task) {
-  editingTaskUuid.value = task.uuid
-  currentView.value = 'next'
+  editingTask.value = task
+}
+
+function handleEditFromCard(task: Task) {
+  editingTask.value = task
+}
+
+function handleSaveEdit(uuid: string, data: UpdateTaskRequest) {
+  store.updateTask(uuid, data)
 }
 
 // 取消完成任务
@@ -344,11 +352,9 @@ function handleDeleteTag(name: string) {
                 :index="i"
                 :all-projects="allProjects"
                 :all-tags="allTags"
-                :auto-expand="editingTaskUuid === task.uuid"
                 @complete="handleCompleteTask"
-                @update="handleUpdateTask"
+                @edit="handleEditFromCard"
                 @delete="handleDeleteTask"
-                @add-project="handleAddProject"
                 @delete-project="handleDeleteProject"
                 @add-tag="handleAddTag"
                 @delete-tag="handleDeleteTag"
@@ -385,6 +391,20 @@ function handleDeleteTag(name: string) {
       :today-count="doneInfo.todayCount"
       :total-done="doneInfo.totalDone"
       @close="doneInfo = null"
+    />
+
+    <!-- 编辑弹窗 -->
+    <TaskEditModal
+      :task="editingTask"
+      :all-projects="allProjects"
+      :all-tags="allTags"
+      @close="editingTask = null"
+      @save="handleSaveEdit"
+      @delete="handleDeleteTask"
+      @add-project="handleAddProject"
+      @delete-project="handleDeleteProject"
+      @add-tag="handleAddTag"
+      @delete-tag="handleDeleteTag"
     />
 
     <!-- 错误提示 -->
