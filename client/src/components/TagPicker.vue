@@ -24,9 +24,14 @@ function toggle(tag: string) {
 
 function submit() {
   const v = newVal.value.trim()
-  if (v && !props.options.includes(v)) {
-    emit('add', v)
-    emit('update:selected', [...props.selected, v])
+  if (v) {
+    if (!props.options.includes(v)) {
+      emit('add', v)
+    }
+    // 添加后自动选中（如果还没选中的话）
+    if (!props.selected.includes(v)) {
+      emit('update:selected', [...props.selected, v])
+    }
   }
   newVal.value = ''
 }

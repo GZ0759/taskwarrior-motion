@@ -17,8 +17,12 @@ const newVal = ref('')
 
 function submit() {
   const v = newVal.value.trim()
-  if (v && !props.options.includes(v)) {
-    emit('add', v)
+  if (v) {
+    if (!props.options.includes(v)) {
+      emit('add', v)
+    }
+    // 添加后自动选中
+    emit('update:value', v)
   }
   newVal.value = ''
 }
