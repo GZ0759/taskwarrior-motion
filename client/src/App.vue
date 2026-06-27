@@ -13,6 +13,8 @@ import CompletionModal from '@/components/CompletionModal.vue'
 import TaskEditModal from '@/components/TaskEditModal.vue'
 import HelpModal from '@/components/HelpModal.vue'
 import ProjectManageModal from '@/components/ProjectManageModal.vue'
+import TagList from '@/components/TagList.vue'
+import TagManageModal from '@/components/TagManageModal.vue'
 import KanbanView from '@/views/KanbanView.vue'
 import CalendarView from '@/views/CalendarView.vue'
 import type { Task, UpdateTaskRequest } from '@/types/task'
@@ -200,6 +202,8 @@ const editingTask = ref<Task | null>(null)
 const showHelp = ref(false)
 const showCompleted = ref(false)
 const managingProject = ref<string | null>(null)
+const managingTag = ref<string | null>(null)
+const leftTab = ref<'projects' | 'tags'>('projects')
 
 function toggleCompleted() {
   showCompleted.value = !showCompleted.value
@@ -249,6 +253,18 @@ function handleRenameProject(oldName: string, newName: string) {
 function handleCreateProject(name: string) {
   // 创建项目名（不创建任务，只是让用户知道可以用了）
   // 无需后端操作，前端 allProjects 会自动更新
+}
+
+function handleRenameTag(oldName: string, newName: string) {
+  // 重命名标签：批量修改所有关联任务的标签
+  store.tasks
+    .filter((t) => t.tags?.includes(oldName))
+    .forEach((t) =>
+      store.updateTask(t.uuid, {
+        tags: t.tags?.map(tag => tag === oldName ? newName : tag)
+      })
+    )
+  store.fetchStats()
 }
 
 function handleAddTag(_name: string) {
@@ -312,14 +328,32 @@ function handleDeleteTag(name: string) {
           </div>
         </div>
 
-        <!-- 热力图 + 项目进度 -->
+        <!-- 热力图 + 项目/标签 -->
         <div class="flex-1 overflow-y-auto px-5 py-5 space-y-6">
           <Heatmap />
 
-          <div
-            :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}`, paddingTop: '20px' }"
-          >
-            <ProjectProgress @select="managingProject = $event" />
+          <div :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}`, paddingTop: '20px' }">
+            <!-- tab 切换 -->
+            <div class="flex gap-1 mb-4">
+              <button
+                class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
+                :class="leftTab === 'projects'
+                  ? (isDark ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
+                  : (isDark ? 'text-white/40 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100')"
+                @click="leftTab = 'projects'"
+              >项目进度</button>
+              <button
+                class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
+                :class="leftTab === 'tags'
+                  ? (isDark ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
+                  : (isDark ? 'text-white/40 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100')"
+                @click="leftTab = 'tags'"
+              >标签</button>
+            </div>
+
+            <!-- 内容 -->
+            <ProjectProgress v-if="leftTab === 'projects'" @select="managingProject = $event" />
+            <TagList v-else @select="managingTag = $event" />
           </div>
         </div>
       </div>
@@ -530,6 +564,15 @@ function handleDeleteTag(name: string) {
       @rename="handleRenameProject"
       @delete="handleDeleteProject"
       @create="handleCreateProject"
+    />
+
+    <!-- 标签管理弹窗 -->
+    <TagManageModal
+      :show="!!managingTag"
+      :tag-name="managingTag || ''"
+      @close="managingTag = null"
+      @rename="handleRenameTag"
+      @delete="handleDeleteTag"
     />
 
     <!-- 错误提示 -->
