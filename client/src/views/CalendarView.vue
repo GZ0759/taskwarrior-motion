@@ -52,7 +52,14 @@ const calendarDays = computed(() => {
 
 function getTasksForDate(date: Date): Task[] {
   const dateStr = date.toISOString().split('T')[0]
-  return store.tasks.filter((t) => t.due && t.due === dateStr)
+  return store.tasks.filter((t) => {
+    if (!t.due) return false
+    // taskwarrior due 格式: "20260628T000000Z" → 转为 "2026-06-28"
+    const taskDate = t.due.length >= 8
+      ? `${t.due.slice(0, 4)}-${t.due.slice(4, 6)}-${t.due.slice(6, 8)}`
+      : t.due
+    return taskDate === dateStr
+  })
 }
 
 function isToday(date: Date): boolean {
