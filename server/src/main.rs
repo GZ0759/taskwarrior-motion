@@ -1,7 +1,7 @@
-mod errors;
-mod models;
-mod routes;
-mod taskwarrior;
+pub mod errors;
+pub mod models;
+pub mod routes;
+pub mod taskwarrior;
 
 use axum::{Router, routing::get, routing::post};
 use std::sync::Arc;

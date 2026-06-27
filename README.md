@@ -189,6 +189,7 @@ taskwarrior-motion/
 | `x` | Complete focused task |
 | `Escape` | Close modal |
 | `?` | Show help |
+| `Ctrl+Z` | Undo last action |
 
 ---
 
@@ -279,28 +280,28 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Roadmap
 
-### Phase 1: Core (Week 1)
-- [ ] Project initialization
-- [ ] Rust backend implementation
-- [ ] Taskwarrior CLI wrapper
+### Phase 1: Core (Week 1) ✅
+- [x] Project initialization
+- [x] Rust backend implementation
+- [x] Taskwarrior CLI wrapper
 
-### Phase 2: Frontend (Week 2)
-- [ ] Vue frontend core
-- [ ] Task CRUD
-- [ ] List view
-- [ ] Search & filter
+### Phase 2: Frontend (Week 2) ✅
+- [x] Vue frontend core
+- [x] Task CRUD
+- [x] List view
+- [x] Search & filter
 
-### Phase 3: Views (Week 3)
-- [ ] Kanban view
-- [ ] Calendar view
-- [ ] Done view
-- [ ] Advanced features
+### Phase 3: Views (Week 3) ✅
+- [x] Kanban view
+- [x] Calendar view
+- [x] Done view
+- [x] Advanced features
 
-### Phase 4: Polish (Week 4)
-- [ ] Animations
-- [ ] Sound effects
-- [ ] Testing
-- [ ] Documentation
+### Phase 4: Polish (Week 4) ✅
+- [x] Animations
+- [x] Sound effects
+- [x] Testing
+- [x] Documentation
 
 ---
 

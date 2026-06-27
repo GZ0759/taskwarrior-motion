@@ -4,6 +4,12 @@ use tokio::process::Command;
 
 pub struct TaskwarriorClient;
 
+impl Default for TaskwarriorClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TaskwarriorClient {
     pub fn new() -> Self {
         TaskwarriorClient
