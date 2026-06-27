@@ -146,7 +146,7 @@ function handleDeleteTag(name: string) {
 
 <template>
   <div
-    class="size-full flex overflow-hidden min-h-screen"
+    class="h-screen flex overflow-hidden"
     :class="isDark ? 'mesh-dark' : 'mesh-light'"
   >
     <div class="flex gap-5 p-5 w-full h-full">
