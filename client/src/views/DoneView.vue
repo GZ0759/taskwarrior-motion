@@ -9,6 +9,15 @@ const { isDark } = useTheme()
 
 const daysToShow = ref(14)
 
+// 解析 taskwarrior 日期格式: 20260627T141924Z → Date
+function parseTaskDate(d: string): Date {
+  if (d.length === 16 && d[8] === 'T') {
+    const iso = `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}T${d.slice(9, 11)}:${d.slice(11, 13)}:${d.slice(13, 15)}Z`
+    return new Date(iso)
+  }
+  return new Date(d)
+}
+
 const completedTasks = computed(() => {
   const cutoffDate = new Date()
   cutoffDate.setDate(cutoffDate.getDate() - daysToShow.value)
@@ -16,13 +25,13 @@ const completedTasks = computed(() => {
   return store.completedTasks
     .filter((t) => {
       if (t.end) {
-        return new Date(t.end) >= cutoffDate
+        return parseTaskDate(t.end) >= cutoffDate
       }
       return false
     })
     .sort((a, b) => {
       if (a.end && b.end) {
-        return new Date(b.end).getTime() - new Date(a.end).getTime()
+        return parseTaskDate(b.end).getTime() - parseTaskDate(a.end).getTime()
       }
       return 0
     })
@@ -30,6 +39,7 @@ const completedTasks = computed(() => {
 
 const emit = defineEmits<{
   edit: [task: Task]
+  uncomplete: [uuid: string]
 }>()
 </script>
 
@@ -122,9 +132,19 @@ const emit = defineEmits<{
               v-if="task.end"
               class="text-[10px]"
               :style="{ color: 'var(--txt-subtle)' }"
-            >{{ new Date(task.end).toLocaleDateString('zh-CN') }}</span>
+            >{{ parseTaskDate(task.end).toLocaleDateString('zh-CN') }}</span>
           </div>
         </div>
+
+        <!-- 取消完成按钮 -->
+        <button
+          class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors shrink-0"
+          :style="{
+            background: isDark ? 'rgba(234,179,8,0.20)' : 'rgba(234,179,8,0.10)',
+            color: isDark ? '#fde68a' : '#eab308',
+          }"
+          @click="emit('uncomplete', task.uuid)"
+        >取消完成</button>
       </div>
     </div>
   </div>

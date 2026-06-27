@@ -126,6 +126,36 @@ impl TaskwarriorClient {
         Ok(())
     }
 
+    pub async fn uncomplete(&self, uuid: &str) -> Result<(), AppError> {
+        // First check if task exists
+        let tasks = self.export(None).await?;
+        if !tasks.iter().any(|t| t.uuid == uuid) {
+            return Err(AppError::NotFound(format!("Task {} not found", uuid)));
+        }
+
+        let output = Command::new("task")
+            .args([uuid, "modify", "status:pending"])
+            .output()
+            .await
+            .map_err(|e| AppError::TaskError(format!("Failed to execute task uncomplete: {}", e)))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let error_msg = if stderr.is_empty() {
+                stdout.to_string()
+            } else {
+                stderr.to_string()
+            };
+            return Err(AppError::TaskError(format!(
+                "task uncomplete failed: {}",
+                error_msg
+            )));
+        }
+
+        Ok(())
+    }
+
     pub async fn delete(&self, uuid: &str) -> Result<(), AppError> {
         use tokio::io::AsyncWriteExt;
 

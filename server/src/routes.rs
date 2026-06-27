@@ -210,6 +210,18 @@ pub async fn done_task(
     }))
 }
 
+pub async fn uncomplete_task(
+    State(state): State<AppState>,
+    Path(uuid): Path<String>,
+) -> Result<Json<MessageResponse>, AppError> {
+    let client = state.client.lock().await;
+    client.uncomplete(&uuid).await?;
+
+    Ok(Json(MessageResponse {
+        message: "Task uncompleted successfully".to_string(),
+    }))
+}
+
 pub async fn start_task(
     State(state): State<AppState>,
     Path(uuid): Path<String>,

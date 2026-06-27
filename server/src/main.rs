@@ -32,6 +32,7 @@ async fn main() {
                 .delete(routes::delete_task),
         )
         .route("/api/tasks/:uuid/done", post(routes::done_task))
+        .route("/api/tasks/:uuid/uncomplete", post(routes::uncomplete_task))
         .route("/api/tasks/:uuid/start", post(routes::start_task))
         .route("/api/tasks/:uuid/stop", post(routes::stop_task))
         .route("/api/undo", post(routes::undo_action))

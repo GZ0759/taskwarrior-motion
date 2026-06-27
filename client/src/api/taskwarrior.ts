@@ -39,6 +39,11 @@ export const taskApi = {
     return data
   },
 
+  async uncompleteTask(uuid: string): Promise<MessageResponse> {
+    const { data } = await api.post<MessageResponse>(`/tasks/${uuid}/uncomplete`)
+    return data
+  },
+
   async startTask(uuid: string): Promise<MessageResponse> {
     const { data } = await api.post<MessageResponse>(`/tasks/${uuid}/start`)
     return data

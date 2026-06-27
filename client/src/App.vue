@@ -14,7 +14,7 @@ import TaskList from '@/components/TaskList.vue'
 import KanbanView from '@/views/KanbanView.vue'
 import CalendarView from '@/views/CalendarView.vue'
 import DoneView from '@/views/DoneView.vue'
-import type { UpdateTaskRequest } from '@/types/task'
+import type { Task, UpdateTaskRequest } from '@/types/task'
 
 const store = useTaskStore()
 const { theme, isDark, toggleTheme } = useTheme()
@@ -115,6 +115,17 @@ function handleUpdateTask(uuid: string, data: UpdateTaskRequest) {
 // 删除任务
 function handleDeleteTask(uuid: string) {
   store.deleteTask(uuid)
+}
+
+// 从视图编辑任务（看板/日历/已完成）
+function handleEditFromView(_task: Task) {
+  // 暂时不做处理，后续可以弹出编辑弹窗
+  // TODO: 实现编辑弹窗
+}
+
+// 取消完成任务
+function handleUncompleteTask(uuid: string) {
+  store.uncompleteTask(uuid)
 }
 
 // 项目/标签 CRUD（通过修改任务实现）
@@ -298,13 +309,23 @@ function handleDeleteTag(name: string) {
           </template>
 
           <!-- 看板视图 -->
-          <KanbanView v-else-if="currentView === 'kanban'" />
+          <KanbanView
+            v-else-if="currentView === 'kanban'"
+            @edit="handleEditFromView"
+          />
 
           <!-- 日历视图 -->
-          <CalendarView v-else-if="currentView === 'calendar'" />
+          <CalendarView
+            v-else-if="currentView === 'calendar'"
+            @edit="handleEditFromView"
+          />
 
           <!-- 已完成视图 -->
-          <DoneView v-else-if="currentView === 'done'" />
+          <DoneView
+            v-else-if="currentView === 'done'"
+            @edit="handleEditFromView"
+            @uncomplete="handleUncompleteTask"
+          />
         </div>
       </div>
     </div>

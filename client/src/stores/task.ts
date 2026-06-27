@@ -112,6 +112,20 @@ export const useTaskStore = defineStore('task', () => {
     }
   }
 
+  async function uncompleteTask(uuid: string) {
+    loading.value = true
+    error.value = null
+    try {
+      await taskApi.uncompleteTask(uuid)
+      await fetchTasks()
+    } catch (e) {
+      error.value = (e as Error).message
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function startTask(uuid: string) {
     try {
       await taskApi.startTask(uuid)
