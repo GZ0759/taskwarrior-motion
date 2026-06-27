@@ -12,6 +12,7 @@ import AddTask from '@/components/AddTask.vue'
 import CompletionModal from '@/components/CompletionModal.vue'
 import TaskEditModal from '@/components/TaskEditModal.vue'
 import HelpModal from '@/components/HelpModal.vue'
+import ProjectManageModal from '@/components/ProjectManageModal.vue'
 import KanbanView from '@/views/KanbanView.vue'
 import CalendarView from '@/views/CalendarView.vue'
 import type { Task, UpdateTaskRequest } from '@/types/task'
@@ -198,6 +199,7 @@ function handleDeleteTask(uuid: string) {
 const editingTask = ref<Task | null>(null)
 const showHelp = ref(false)
 const showCompleted = ref(false)
+const managingProject = ref<string | null>(null)
 
 function toggleCompleted() {
   showCompleted.value = !showCompleted.value
@@ -234,6 +236,19 @@ function handleDeleteProject(name: string) {
   store.tasks
     .filter((t) => t.project === name)
     .forEach((t) => store.updateTask(t.uuid, { project: '' }))
+}
+
+function handleRenameProject(oldName: string, newName: string) {
+  // 重命名项目：批量修改所有关联任务的 project 字段
+  store.tasks
+    .filter((t) => t.project === oldName)
+    .forEach((t) => store.updateTask(t.uuid, { project: newName }))
+  store.fetchStats()
+}
+
+function handleCreateProject(name: string) {
+  // 创建项目名（不创建任务，只是让用户知道可以用了）
+  // 无需后端操作，前端 allProjects 会自动更新
 }
 
 function handleAddTag(_name: string) {
@@ -304,7 +319,7 @@ function handleDeleteTag(name: string) {
           <div
             :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}`, paddingTop: '20px' }"
           >
-            <ProjectProgress />
+            <ProjectProgress @select="managingProject = $event" />
           </div>
         </div>
       </div>
@@ -505,6 +520,16 @@ function handleDeleteTag(name: string) {
     <HelpModal
       :show="showHelp"
       @close="showHelp = false"
+    />
+
+    <!-- 项目管理弹窗 -->
+    <ProjectManageModal
+      :show="!!managingProject"
+      :project-name="managingProject || ''"
+      @close="managingProject = null"
+      @rename="handleRenameProject"
+      @delete="handleDeleteProject"
+      @create="handleCreateProject"
     />
 
     <!-- 错误提示 -->

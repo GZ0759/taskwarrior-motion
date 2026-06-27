@@ -7,6 +7,10 @@ import { getCardStyle } from '@/utils/card-styles'
 const store = useTaskStore()
 const { isDark } = useTheme()
 
+const emit = defineEmits<{
+  (e: 'select', name: string): void
+}>()
+
 interface ProjectStat {
   name: string
   total: number
@@ -61,10 +65,11 @@ const projects = computed<ProjectStat[]>(() => {
     <div class="space-y-3">
       <div v-for="p in projects" :key="p.name">
         <div class="flex justify-between mb-1.5">
-          <span
-            class="text-[11px] font-semibold"
+          <button
+            class="text-[11px] font-semibold transition-colors cursor-pointer hover:underline"
             :style="{ color: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(15,10,40,0.72)' }"
-          >{{ p.name }}</span>
+            @click="emit('select', p.name)"
+          >{{ p.name }}</button>
           <span class="text-[11px]" :style="{ color: 'var(--txt-muted)' }">
             {{ p.done }}/{{ p.total }}
           </span>
