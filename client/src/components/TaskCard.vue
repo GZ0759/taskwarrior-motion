@@ -81,8 +81,8 @@ function openEdit() {
         border: '1px solid rgba(255,255,255,0.15)',
       }"
     >
-      <!-- 主行 -->
-      <div class="flex items-center gap-3.5 px-4 py-3.5">
+      <!-- 第一行：checkbox + 描述 + 截止日期 -->
+      <div class="flex items-center gap-3 px-4 pt-3.5 pb-2">
         <!-- 完成按钮 -->
         <button
           class="shrink-0 w-6 h-6 rounded-full border-2 border-white/45 flex items-center justify-center transition-all duration-150 hover:border-white hover:bg-white/20 focus:outline-none"
@@ -110,16 +110,34 @@ function openEdit() {
           class="shrink-0 text-[10px] px-2 py-0.5 rounded-full font-semibold"
           :class="overdue ? 'due-overdue' : 'due-normal'"
         >{{ dueLabel }}</span>
+      </div>
 
-        <!-- 优先级圆点 -->
-        <div
-          class="shrink-0 w-1.5 h-1.5 rounded-full"
+      <!-- 第二行：标签 + 优先级 + 计时 + 编辑 -->
+      <div class="flex items-center gap-2 px-4 pb-3.5 pt-1">
+        <!-- 标签 -->
+        <div v-if="task.tags && task.tags.length > 0" class="flex gap-1 flex-wrap flex-1 min-w-0">
+          <span
+            v-for="tag in task.tags.slice(0, 3)"
+            :key="tag"
+            class="text-[10px] px-2 py-0.5 rounded-lg bg-white/15 text-white/80 truncate"
+          >{{ tag }}</span>
+          <span
+            v-if="task.tags.length > 3"
+            class="text-[10px] px-1.5 py-0.5 text-white/50"
+          >+{{ task.tags.length - 3 }}</span>
+        </div>
+        <div v-else class="flex-1" />
+
+        <!-- 优先级 badge -->
+        <span
+          v-if="task.priority"
+          class="text-[10px] px-2 py-0.5 rounded-lg font-semibold"
           :class="{
             'priority-h': task.priority === 'H',
             'priority-m': task.priority === 'M',
             'priority-l': task.priority === 'L',
           }"
-        />
+        >{{ task.priority === 'H' ? '紧急' : task.priority === 'M' ? '普通' : '低优' }}</span>
 
         <!-- 计时器 -->
         <button

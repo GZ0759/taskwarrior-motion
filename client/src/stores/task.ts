@@ -112,8 +112,15 @@ export const useTaskStore = defineStore('task', () => {
     error.value = null
     try {
       await taskApi.createTask(task)
+      // 重新获取任务列表
       await fetchPendingTasks()
       await fetchStats()
+      // 将新任务移到顶部（通过 description 匹配）
+      const newIndex = pendingTasks.value.findIndex(t => t.description === task.description)
+      if (newIndex > 0) {
+        const [newTask] = pendingTasks.value.splice(newIndex, 1)
+        pendingTasks.value.unshift(newTask)
+      }
     } catch (e) {
       error.value = (e as Error).message
       throw e

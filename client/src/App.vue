@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { Sparkles, Volume2, VolumeX, Sun, Moon, SunMoon } from '@lucide/vue'
+import { Sparkles, Volume2, VolumeX, Sun, Moon, SunMoon, ChevronDown, Check } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import { useKeyboard } from '@/composables/useKeyboard'
@@ -14,9 +14,8 @@ import TaskEditModal from '@/components/TaskEditModal.vue'
 import HelpModal from '@/components/HelpModal.vue'
 import KanbanView from '@/views/KanbanView.vue'
 import CalendarView from '@/views/CalendarView.vue'
-import DoneView from '@/views/DoneView.vue'
 import type { Task, UpdateTaskRequest } from '@/types/task'
-import { getTodayStr, taskDateToISO } from '@/utils/date'
+import { getTodayStr, taskDateToISO, parseTaskDate } from '@/utils/date'
 
 const store = useTaskStore()
 const { theme, isDark, toggleTheme } = useTheme()
@@ -26,7 +25,7 @@ const { soundEnabled, toggleSound } = useSound()
 const doneInfo = ref<{ description: string; todayCount: number; totalDone: number } | null>(null)
 
 // 视图切换
-type ViewType = 'next' | 'kanban' | 'calendar' | 'done'
+type ViewType = 'next' | 'kanban' | 'calendar'
 const currentView = ref<ViewType>('next')
 
 // 项目和标签管理
@@ -73,11 +72,10 @@ const todayTaskCount = computed(() => {
 // 右侧标题（跟随 tab 变化）
 const title = computed(() => {
   switch (currentView.value) {
-    case 'next': return '待办事项'
+    case 'next': return '事项'
     case 'kanban': return '看板'
     case 'calendar': return '日历'
-    case 'done': return '已完成'
-    default: return '待办事项'
+    default: return '事项'
   }
 })
 
@@ -90,8 +88,6 @@ const subtitle = computed(() => {
       return `${kanbanStats.value.pending} 个待办 · ${kanbanStats.value.inProgress} 个进行中`
     case 'calendar':
       return `今天 ${todayTaskCount.value} 个任务`
-    case 'done':
-      return `共完成 ${totalDone.value} 个`
     default:
       return ''
   }
@@ -168,9 +164,6 @@ watch(currentView, (view) => {
     case 'calendar':
       store.fetchCalendarTasks()
       break
-    case 'done':
-      store.fetchCompletedTasks()
-      break
   }
 })
 
@@ -204,6 +197,14 @@ function handleDeleteTask(uuid: string) {
 // 编辑任务弹窗
 const editingTask = ref<Task | null>(null)
 const showHelp = ref(false)
+const showCompleted = ref(false)
+
+function toggleCompleted() {
+  showCompleted.value = !showCompleted.value
+  if (showCompleted.value && store.completedTasks.length === 0) {
+    store.fetchCompletedTasks(30)
+  }
+}
 
 function handleEditFromView(task: Task) {
   editingTask.value = task
@@ -329,10 +330,9 @@ function handleDeleteTag(name: string) {
           <div class="flex gap-1">
             <button
               v-for="view in [
-                { key: 'next', label: '待办' },
+                { key: 'next', label: '事项' },
                 { key: 'kanban', label: '看板' },
                 { key: 'calendar', label: '日历' },
-                { key: 'done', label: '已完成' },
               ]"
               :key="view.key"
               class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
@@ -395,6 +395,71 @@ function handleDeleteTag(name: string) {
                 @edit="handleEditFromCard"
                 @delete="handleDeleteTask"
               />
+
+              <!-- 已完成折叠区域 -->
+              <div
+                class="mt-4 rounded-2xl overflow-hidden"
+                :style="{
+                  background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}`,
+                }"
+              >
+                <!-- 折叠头 -->
+                <button
+                  class="w-full flex items-center justify-between px-4 py-3 transition-colors"
+                  :class="isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'"
+                  @click="toggleCompleted"
+                >
+                  <span class="text-sm font-semibold" :style="{ color: 'var(--txt-muted)' }">
+                    已完成 ({{ totalDone }})
+                  </span>
+                  <ChevronDown
+                    :size="14"
+                    class="transition-transform"
+                    :class="{ 'rotate-180': showCompleted }"
+                    :style="{ color: 'var(--txt-muted)' }"
+                  />
+                </button>
+
+                <!-- 展开内容 -->
+                <div v-if="showCompleted" class="px-4 pb-4 space-y-2">
+                  <div
+                    v-for="task in store.completedTasks"
+                    :key="task.uuid"
+                    class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors"
+                    :style="{
+                      background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.50)',
+                    }"
+                  >
+                    <!-- 完成图标 -->
+                    <div
+                      class="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                      :style="{ background: isDark ? 'rgba(34,197,94,0.20)' : 'rgba(34,197,94,0.15)' }"
+                    >
+                      <Check :size="12" :stroke-width="3" :style="{ color: isDark ? '#86efac' : '#22c55e' }" />
+                    </div>
+
+                    <!-- 任务信息 -->
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm line-through opacity-60 truncate" :style="{ color: 'var(--txt-primary)' }">
+                        {{ task.description }}
+                      </p>
+                      <p v-if="task.end" class="text-[10px] mt-0.5" :style="{ color: 'var(--txt-subtle)' }">
+                        {{ parseTaskDate(task.end).toLocaleDateString('zh-CN') }}
+                      </p>
+                    </div>
+
+                    <!-- 取消完成 -->
+                    <button
+                      class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors"
+                      :class="isDark
+                        ? 'text-white/40 hover:text-white hover:bg-white/10'
+                        : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'"
+                      @click="handleUncompleteTask(task.uuid)"
+                    >取消完成</button>
+                  </div>
+                </div>
+              </div>
             </template>
           </template>
 
@@ -408,13 +473,6 @@ function handleDeleteTag(name: string) {
           <CalendarView
             v-else-if="currentView === 'calendar'"
             @edit="handleEditFromView"
-          />
-
-          <!-- 已完成视图 -->
-          <DoneView
-            v-else-if="currentView === 'done'"
-            @edit="handleEditFromView"
-            @uncomplete="handleUncompleteTask"
           />
         </div>
       </div>
