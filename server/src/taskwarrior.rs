@@ -18,7 +18,10 @@ impl TaskwarriorClient {
     pub async fn export(&self, filter: Option<&str>) -> Result<Vec<Task>, AppError> {
         let mut args = Vec::new();
         if let Some(f) = filter {
-            args.push(f);
+            // 将 filter 按空格分割为多个参数
+            for part in f.split_whitespace() {
+                args.push(part);
+            }
         }
         args.push("export");
 
