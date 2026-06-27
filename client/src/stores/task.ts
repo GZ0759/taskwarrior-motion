@@ -178,33 +178,66 @@ export const useTaskStore = defineStore('task', () => {
   }
 
   async function startTask(uuid: string) {
+    loading.value = true
+    error.value = null
     try {
       await taskApi.startTask(uuid)
-      await fetchTasks()
+      await fetchPendingTasks()
     } catch (e) {
       error.value = (e as Error).message
       throw e
+    } finally {
+      loading.value = false
     }
   }
 
   async function stopTask(uuid: string) {
+    loading.value = true
+    error.value = null
     try {
       await taskApi.stopTask(uuid)
-      await fetchTasks()
+      await fetchPendingTasks()
     } catch (e) {
       error.value = (e as Error).message
       throw e
+    } finally {
+      loading.value = false
     }
   }
 
   async function undo() {
+    loading.value = true
+    error.value = null
     try {
       await taskApi.undo()
-      await fetchTasks()
+      await fetchPendingTasks()
+      await fetchStats()
     } catch (e) {
       error.value = (e as Error).message
       throw e
+    } finally {
+      loading.value = false
     }
+  }
+
+  function clearError() {
+    error.value = null
+  }
+
+  function deleteProject(name: string) {
+    // 将该项目下的所有任务的 project 清空
+    tasks.value
+      .filter((t) => t.project === name)
+      .forEach((t) => updateTask(t.uuid, { project: '' }))
+  }
+
+  function deleteTag(name: string) {
+    // 从所有任务中移除该标签
+    tasks.value
+      .filter((t) => t.tags?.includes(name))
+      .forEach((t) =>
+        updateTask(t.uuid, { tags: t.tags?.filter((tag) => tag !== name) })
+      )
   }
 
   function setSearch(query: string) {
@@ -239,6 +272,9 @@ export const useTaskStore = defineStore('task', () => {
     startTask,
     stopTask,
     undo,
+    clearError,
+    deleteProject,
+    deleteTag,
     setSearch,
     setFilter,
   }
