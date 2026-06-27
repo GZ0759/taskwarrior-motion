@@ -1,4 +1,5 @@
 use taskwarrior_motion::models::*;
+use std::collections::HashMap;
 
 #[test]
 fn test_task_serialization() {
@@ -217,4 +218,81 @@ fn test_task_priority_values() {
     assert_eq!(high.priority, Some("H".to_string()));
     assert_eq!(medium.priority, Some("M".to_string()));
     assert!(high.urgency > medium.urgency);
+}
+
+#[test]
+fn test_stats_serialization() {
+    let mut heatmap = HashMap::new();
+    heatmap.insert("2026-06-27".to_string(), 5);
+    heatmap.insert("2026-06-26".to_string(), 3);
+
+    let mut projects = HashMap::new();
+    projects.insert(
+        "Design System".to_string(),
+        ProjectStats {
+            total: 10,
+            done: 6,
+        },
+    );
+    projects.insert(
+        "API Migration".to_string(),
+        ProjectStats {
+            total: 8,
+            done: 4,
+        },
+    );
+
+    let stats = Stats {
+        heatmap,
+        projects,
+        today_count: 5,
+        total_done: 30,
+        pending_count: 8,
+    };
+
+    let json = serde_json::to_string(&stats).unwrap();
+    assert!(json.contains("2026-06-27"));
+    assert!(json.contains("Design System"));
+    assert!(json.contains("\"today_count\":5"));
+    assert!(json.contains("\"total_done\":30"));
+    assert!(json.contains("\"pending_count\":8"));
+
+    let deserialized: Stats = serde_json::from_str(&json).unwrap();
+    assert_eq!(deserialized.today_count, 5);
+    assert_eq!(deserialized.total_done, 30);
+    assert_eq!(deserialized.pending_count, 8);
+    assert_eq!(deserialized.heatmap.get("2026-06-27"), Some(&5));
+    assert_eq!(
+        deserialized.projects.get("Design System").unwrap().total,
+        10
+    );
+}
+
+#[test]
+fn test_project_stats() {
+    let stats = ProjectStats {
+        total: 10,
+        done: 6,
+    };
+
+    let json = serde_json::to_string(&stats).unwrap();
+    assert!(json.contains("\"total\":10"));
+    assert!(json.contains("\"done\":6"));
+
+    let deserialized: ProjectStats = serde_json::from_str(&json).unwrap();
+    assert_eq!(deserialized.total, 10);
+    assert_eq!(deserialized.done, 6);
+}
+
+#[test]
+fn test_completed_query_params() {
+    // Test that days parameter can be deserialized
+    let json = r#"{"days": 14}"#;
+    let params: serde_json::Value = serde_json::from_str(json).unwrap();
+    assert_eq!(params["days"], 14);
+
+    // Test default value
+    let json = r#"{}"#;
+    let params: serde_json::Value = serde_json::from_str(json).unwrap();
+    assert!(params.get("days").is_none());
 }

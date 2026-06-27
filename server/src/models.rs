@@ -83,13 +83,13 @@ pub struct MessageResponse {
     pub message: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ProjectStats {
     pub total: u32,
     pub done: u32,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Stats {
     pub heatmap: HashMap<String, u32>,
     pub projects: HashMap<String, ProjectStats>,
