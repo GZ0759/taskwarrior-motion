@@ -1,19 +1,21 @@
-# 设计规范（Agent 必读）
+# 开发规范（Agent 必读）
 
-> 所有 UI 改动必须遵守此规范。参考 `docs/design-tokens.md` 获取精确数值。
+> 所有改动必须遵守此规范。
 
 ---
 
-## 核心原则
+## 设计规范
+
+参考 `docs/design-tokens.md` 获取精确数值。
+
+### 核心原则
 
 1. **玻璃拟态**：所有面板、卡片、弹窗必须使用半透明背景 + backdrop-blur
 2. **Mesh 渐变背景**：页面背景使用多层 radial-gradient
 3. **深色/浅色双主题**：所有颜色必须同时适配 dark/light 模式
 4. **大圆角**：面板 24px（rounded-3xl），卡片 16px（rounded-2xl），按钮 12px（rounded-xl）
 
----
-
-## 颜色规范
+### 颜色规范
 
 ### 面板背景
 
@@ -100,3 +102,94 @@
 - `client/src/styles/glass.css` — 玻璃拟态工具类
 - `client/src/styles/card-styles.css` — 项目配色
 - `client/src/styles/theme-variables.css` — 主题 CSS 变量
+
+---
+
+## 后端规范
+
+### taskwarrior 3.x 命令格式
+
+**重要**：filter 必须在 `export` 之前，且按空格分割为多个参数。
+
+```rust
+// ✅ 正确
+Command::new("task").args(["status:pending", "export"])
+
+// ❌ 错误
+Command::new("task").args(["export", "status:pending"])
+```
+
+### API 端点
+
+| 端点 | 用途 | taskwarrior 命令 |
+|------|------|-----------------|
+| `GET /api/tasks/pending` | 待办/看板 | `task status:pending export` |
+| `GET /api/tasks/completed?days=N` | 已完成 | `task status:completed end.after:today-Ndays export` |
+| `GET /api/tasks/calendar` | 日历 | `task due.any: export` |
+| `GET /api/stats` | 统计数据 | `task export`（全量，计算统计） |
+
+---
+
+## 前端规范
+
+### 日期处理
+
+taskwarrior 日期格式：`20260627T141924Z`（YYYYMMDDTHHmmssZ）
+
+**必须使用** `client/src/utils/date.ts` 的工具函数：
+
+```typescript
+import { getTodayStr, taskDateToISO, parseTaskDate, formatDue, isOverdue } from '@/utils/date'
+```
+
+❌ 不要在组件中写本地日期解析函数。
+
+### 状态管理
+
+视图组件使用专用 store 方法：
+
+```typescript
+// ✅ 正确
+store.fetchPendingTasks()    // 待办/看板
+store.fetchCompletedTasks()  // 已完成
+store.fetchCalendarTasks()   // 日历
+store.fetchStats()           // 热力图/项目进度
+
+// ❌ 错误
+store.fetchTasks()  // 全量获取，已弃用
+```
+
+操作后自动刷新：
+
+```typescript
+async function addTask(task) {
+  await taskApi.createTask(task)
+  await fetchPendingTasks()  // 刷新待办列表
+  await fetchStats()         // 刷新统计数据
+}
+```
+
+### 组件模式
+
+**编辑任务**：使用 `TaskEditModal` 弹窗，不要用内联展开。
+
+```vue
+<TaskCard @edit="handleEdit" />
+<TaskEditModal :task="editingTask" @save="handleSave" @close="editingTask = null" />
+```
+
+**视图标题**：右侧面板标题跟随 tab 变化，在 App.vue 中用 computed 控制。
+
+---
+
+## 测试规范
+
+提交前运行测试：
+
+```bash
+# 后端
+cd server && cargo test
+
+# 前端
+cd client && pnpm test
+```
