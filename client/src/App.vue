@@ -117,10 +117,12 @@ function handleDeleteTask(uuid: string) {
   store.deleteTask(uuid)
 }
 
-// 从视图编辑任务（看板/日历/已完成）
-function handleEditFromView(_task: Task) {
-  // 暂时不做处理，后续可以弹出编辑弹窗
-  // TODO: 实现编辑弹窗
+// 从视图编辑任务（看板/日历/已完成）→ 切到待办视图并展开编辑
+const editingTaskUuid = ref<string | null>(null)
+
+function handleEditFromView(task: Task) {
+  editingTaskUuid.value = task.uuid
+  currentView.value = 'next'
 }
 
 // 取消完成任务
@@ -235,7 +237,7 @@ function handleDeleteTag(name: string) {
           <div class="flex gap-1">
             <button
               v-for="view in [
-                { key: 'next', label: '列表' },
+                { key: 'next', label: '待办' },
                 { key: 'kanban', label: '看板' },
                 { key: 'calendar', label: '日历' },
                 { key: 'done', label: '已完成' },
@@ -297,6 +299,7 @@ function handleDeleteTag(name: string) {
                 :index="i"
                 :all-projects="allProjects"
                 :all-tags="allTags"
+                :auto-expand="editingTaskUuid === task.uuid"
                 @complete="handleCompleteTask"
                 @update="handleUpdateTask"
                 @delete="handleDeleteTask"

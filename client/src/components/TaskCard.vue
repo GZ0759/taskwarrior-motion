@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Check, ChevronDown, ChevronUp, Calendar, FolderOpen, Tag } from '@lucide/vue'
 import { useTheme } from '@/composables/useTheme'
 import { useSound } from '@/composables/useSound'
@@ -13,6 +13,7 @@ const props = defineProps<{
   index: number
   allProjects: string[]
   allTags: string[]
+  autoExpand?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -35,6 +36,11 @@ const expanded = ref(false)
 const shaking = ref(false)
 const checked = ref(false)
 const removing = ref(false)
+
+// 自动展开（从其他视图跳转编辑时）
+watch(() => props.autoExpand, (val) => {
+  if (val) expanded.value = true
+}, { immediate: true })
 
 // 编辑状态
 const editProject = ref(props.task.project ?? '')
