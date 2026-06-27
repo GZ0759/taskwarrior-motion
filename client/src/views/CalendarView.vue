@@ -81,6 +81,36 @@ function goToToday() {
   currentDate.value = new Date()
 }
 
+// 周视图
+const weekDays = computed(() => {
+  const date = new Date(currentDate.value)
+  const day = date.getDay()
+  const startOfWeek = new Date(date)
+  startOfWeek.setDate(date.getDate() - day)
+
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startOfWeek)
+    d.setDate(startOfWeek.getDate() + i)
+    return {
+      date: d,
+      tasks: getTasksForDate(d),
+      isToday: isToday(d),
+    }
+  })
+})
+
+const weekRange = computed(() => {
+  const start = weekDays.value[0].date
+  const end = weekDays.value[6].date
+  return `${start.getMonth() + 1}月${start.getDate()}日 - ${end.getMonth() + 1}月${end.getDate()}日`
+})
+
+function navigateWeek(direction: number) {
+  const newDate = new Date(currentDate.value)
+  newDate.setDate(newDate.getDate() + direction * 7)
+  currentDate.value = newDate
+}
+
 const emit = defineEmits<{
   edit: [task: Task]
 }>()
@@ -115,7 +145,7 @@ const emit = defineEmits<{
           <button
             class="p-2 rounded-xl transition-colors"
             :style="{ color: 'var(--txt-muted)' }"
-            @click="navigateMonth(-1)"
+            @click="currentView === 'week' ? navigateWeek(-1) : navigateMonth(-1)"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -131,7 +161,7 @@ const emit = defineEmits<{
           <button
             class="p-2 rounded-xl transition-colors"
             :style="{ color: 'var(--txt-muted)' }"
-            @click="navigateMonth(1)"
+            @click="currentView === 'week' ? navigateWeek(1) : navigateMonth(1)"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -140,7 +170,7 @@ const emit = defineEmits<{
         </div>
 
         <span class="text-sm font-bold" :style="{ color: 'var(--txt-primary)' }">
-          {{ currentMonth }}
+          {{ currentView === 'week' ? weekRange : currentMonth }}
         </span>
       </div>
     </div>
@@ -219,7 +249,62 @@ const emit = defineEmits<{
       </div>
     </div>
 
-    <!-- 周/日视图占位 -->
+    <!-- 周视图 -->
+    <div
+      v-else-if="currentView === 'week'"
+      class="rounded-2xl overflow-y-auto flex-1 min-h-0"
+      :style="{
+        background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.30)',
+        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.50)'}`,
+      }"
+    >
+      <div class="grid grid-cols-7 h-full">
+        <div
+          v-for="(day, index) in weekDays"
+          :key="index"
+          class="p-3 min-h-[200px]"
+          :style="{
+            borderRight: index < 6 ? `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}` : 'none',
+            background: day.isToday
+              ? (isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)')
+              : 'transparent',
+          }"
+        >
+          <div
+            class="text-sm font-bold mb-2"
+            :style="{
+              color: day.isToday
+                ? (isDark ? '#818cf8' : '#6366f1')
+                : 'var(--txt-primary)',
+            }"
+          >
+            {{ daysOfWeek[index] }} {{ day.date.getDate() }}
+          </div>
+          <div class="space-y-1">
+            <div
+              v-for="task in day.tasks"
+              :key="task.uuid"
+              class="text-[10px] px-2 py-1 rounded-lg cursor-pointer font-medium truncate"
+              :style="{
+                background: task.priority === 'H'
+                  ? (isDark ? 'rgba(239,68,68,0.20)' : 'rgba(239,68,68,0.10)')
+                  : task.priority === 'M'
+                    ? (isDark ? 'rgba(234,179,8,0.20)' : 'rgba(234,179,8,0.10)')
+                    : (isDark ? 'rgba(99,102,241,0.20)' : 'rgba(99,102,241,0.10)'),
+                color: task.priority === 'H'
+                  ? (isDark ? '#fca5a5' : '#ef4444')
+                  : task.priority === 'M'
+                    ? (isDark ? '#fde68a' : '#eab308')
+                    : (isDark ? '#a5b4fc' : '#6366f1'),
+              }"
+              @click="emit('edit', task)"
+            >{{ task.description }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 日视图占位 -->
     <div
       v-else
       class="rounded-2xl p-8 text-center"
@@ -228,9 +313,7 @@ const emit = defineEmits<{
         border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.50)'}`,
       }"
     >
-      <p class="text-sm" :style="{ color: 'var(--txt-muted)' }">
-        {{ currentView === 'week' ? '周' : '日' }}视图开发中
-      </p>
+      <p class="text-sm" :style="{ color: 'var(--txt-muted)' }">日视图开发中</p>
     </div>
   </div>
 </template>
