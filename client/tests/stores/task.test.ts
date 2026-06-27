@@ -14,26 +14,14 @@ describe('TaskStore', () => {
     expect(store.error).toBeNull()
   })
 
-  it('computes pending tasks', () => {
+  it('initializes pending tasks as empty array', () => {
     const store = useTaskStore()
-    store.tasks = [
-      { uuid: '1', description: 'Task 1', status: 'pending', entry: '2026-06-27', modified: '2026-06-27', urgency: 0, id: 1 },
-      { uuid: '2', description: 'Task 2', status: 'completed', entry: '2026-06-27', modified: '2026-06-27', urgency: 0, id: 2 },
-    ]
-
-    expect(store.pendingTasks).toHaveLength(1)
-    expect(store.pendingTasks[0].uuid).toBe('1')
+    expect(store.pendingTasks).toEqual([])
   })
 
-  it('computes completed tasks', () => {
+  it('initializes completed tasks as empty array', () => {
     const store = useTaskStore()
-    store.tasks = [
-      { uuid: '1', description: 'Task 1', status: 'pending', entry: '2026-06-27', modified: '2026-06-27', urgency: 0, id: 1 },
-      { uuid: '2', description: 'Task 2', status: 'completed', entry: '2026-06-27', modified: '2026-06-27', urgency: 0, id: 2 },
-    ]
-
-    expect(store.completedTasks).toHaveLength(1)
-    expect(store.completedTasks[0].uuid).toBe('2')
+    expect(store.completedTasks).toEqual([])
   })
 
   it('sets search query', () => {
@@ -70,5 +58,20 @@ describe('TaskStore', () => {
     store.setFilter('status:pending')
     expect(store.filteredTasks).toHaveLength(1)
     expect(store.filteredTasks[0].status).toBe('pending')
+  })
+
+  it('clears error', () => {
+    const store = useTaskStore()
+    store.error = 'Test error'
+    store.clearError()
+    expect(store.error).toBeNull()
+  })
+
+  it('initializes with empty view-specific data', () => {
+    const store = useTaskStore()
+    expect(store.pendingTasks).toEqual([])
+    expect(store.completedTasks).toEqual([])
+    expect(store.calendarTasks).toEqual([])
+    expect(store.stats).toBeNull()
   })
 })
