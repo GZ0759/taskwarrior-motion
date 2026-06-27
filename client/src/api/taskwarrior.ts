@@ -37,6 +37,11 @@ export const taskApi = {
     return data
   },
 
+  async getCompletedOnDate(date: string): Promise<Task[]> {
+    const { data } = await api.get<Task[]>('/tasks/completed', { params: { date } })
+    return data
+  },
+
   async getCalendarTasks(): Promise<Task[]> {
     const { data } = await api.get<Task[]>('/tasks/calendar')
     return data

@@ -90,6 +90,11 @@ impl TaskwarriorClient {
         self.export(Some(&filter)).await
     }
 
+    pub async fn export_completed_on_date(&self, date: &str) -> Result<Vec<Task>, AppError> {
+        let filter = format!("status:completed end:{}", date);
+        self.export(Some(&filter)).await
+    }
+
     pub async fn export_with_due(&self) -> Result<Vec<Task>, AppError> {
         self.export(Some("due.any:")).await
     }

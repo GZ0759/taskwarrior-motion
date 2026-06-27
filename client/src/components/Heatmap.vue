@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import { getTodayStr, taskDateToISO } from '@/utils/date'
+import type { Task } from '@/types/task'
+import DayCompletedModal from './DayCompletedModal.vue'
 
 const store = useTaskStore()
 const { isDark } = useTheme()
+
+// 弹窗状态
+const showModal = ref(false)
+const selectedDate = ref('')
+const selectedTasks = ref<Task[]>([])
 
 // 日期工具
 function fmt(d: Date): string {
@@ -86,6 +93,14 @@ function cellTxt(count: number): string {
 }
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+
+// 点击格子
+async function handleCellClick(cell: { date: string; count: number }) {
+  if (cell.count === 0) return
+  selectedDate.value = cell.date
+  selectedTasks.value = await store.fetchCompletedOnDate(cell.date)
+  showModal.value = true
+}
 </script>
 
 <template>
@@ -132,9 +147,11 @@ const weekdays = ['日', '一', '二', '三', '四', '五', '六']
       <div
         v-for="cell in cells"
         :key="cell.date"
-        class="aspect-square rounded-xl flex items-center justify-center relative cursor-default select-none transition-transform hover:scale-110"
+        class="aspect-square rounded-xl flex items-center justify-center relative select-none transition-transform hover:scale-110"
+        :class="cell.count > 0 ? 'cursor-pointer' : 'cursor-default'"
         :style="{ backgroundColor: cellBg(cell.count) }"
         :title="`${cell.date}：完成 ${cell.count} 项`"
+        @click="handleCellClick(cell)"
       >
         <span
           class="text-[13px] font-bold tabular-nums"
@@ -163,5 +180,13 @@ const weekdays = ['日', '一', '二', '三', '四', '五', '六']
       />
       <span class="text-[9px]" :style="{ color: 'var(--txt-subtle)' }">多</span>
     </div>
+
+    <!-- 当日完成任务弹窗 -->
+    <DayCompletedModal
+      :show="showModal"
+      :date="selectedDate"
+      :tasks="selectedTasks"
+      @close="showModal = false"
+    />
   </div>
 </template>

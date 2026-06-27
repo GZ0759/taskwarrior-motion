@@ -17,6 +17,7 @@ pub struct AppState {
 #[derive(Debug, Deserialize)]
 pub struct CompletedQueryParams {
     pub days: Option<u32>,
+    pub date: Option<String>,
 }
 
 pub async fn get_tasks(
@@ -282,6 +283,11 @@ pub async fn get_completed_tasks(
     Query(params): Query<CompletedQueryParams>,
 ) -> Result<Json<Vec<Task>>, AppError> {
     let client = state.client.as_ref();
+    // 如果有 date 参数，按日期查询
+    if let Some(date) = &params.date {
+        let tasks = client.export_completed_on_date(date).await?;
+        return Ok(Json(tasks));
+    }
     let days = params.days.unwrap_or(14);
     let tasks = client.export_completed(days).await?;
     Ok(Json(tasks))

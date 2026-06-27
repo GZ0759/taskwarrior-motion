@@ -95,6 +95,19 @@ export const useTaskStore = defineStore('task', () => {
     }
   }
 
+  async function fetchCompletedOnDate(date: string): Promise<Task[]> {
+    loading.value = true
+    error.value = null
+    try {
+      return await taskApi.getCompletedOnDate(date)
+    } catch (e) {
+      error.value = (e as Error).message
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function fetchStats() {
     loading.value = true
     error.value = null
