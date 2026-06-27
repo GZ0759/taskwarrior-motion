@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { X, Calendar, FolderOpen, Tag } from '@lucide/vue'
 import { useTheme } from '@/composables/useTheme'
+import { taskDateToISO } from '@/utils/date'
 import type { Task, UpdateTaskRequest } from '@/types/task'
 import ProjectPicker from './ProjectPicker.vue'
 import TagPicker from './TagPicker.vue'
@@ -37,13 +38,20 @@ watch(() => props.task, (task) => {
     editProject.value = task.project ?? ''
     editTags.value = task.tags ?? []
     editPriority.value = task.priority ?? 'M'
-    editDue.value = task.due ?? ''
-    editWait.value = task.wait ?? ''
+    // 转换 taskwarrior 日期格式为 YYYY-MM-DD（date input 要求）
+    editDue.value = task.due ? taskDateToISO(task.due) : ''
+    editWait.value = task.wait ? taskDateToISO(task.wait) : ''
   }
 }, { immediate: true })
 
 // 优先级标签
 const priorityLabels: Record<string, string> = { H: '紧急', M: '普通', L: '低优' }
+
+// 将 YYYY-MM-DD 转为 taskwarrior 格式
+function toTaskwarriorDate(dateStr: string): string | undefined {
+  if (!dateStr) return undefined
+  return dateStr.replace(/-/g, '') + 'T000000Z'
+}
 
 function save() {
   if (!props.task) return
@@ -51,8 +59,8 @@ function save() {
     project: editProject.value || undefined,
     tags: editTags.value.length > 0 ? editTags.value : undefined,
     priority: editPriority.value,
-    due: editDue.value || undefined,
-    wait: editWait.value || undefined,
+    due: toTaskwarriorDate(editDue.value),
+    wait: toTaskwarriorDate(editWait.value),
   })
   emit('close')
 }
