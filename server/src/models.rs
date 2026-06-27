@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
@@ -80,4 +81,19 @@ pub struct TaskQueryParams {
 #[derive(Debug, Serialize)]
 pub struct MessageResponse {
     pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProjectStats {
+    pub total: u32,
+    pub done: u32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Stats {
+    pub heatmap: HashMap<String, u32>,
+    pub projects: HashMap<String, ProjectStats>,
+    pub today_count: u32,
+    pub total_done: u32,
+    pub pending_count: u32,
 }

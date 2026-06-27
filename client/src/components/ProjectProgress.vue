@@ -16,7 +16,21 @@ interface ProjectStat {
 }
 
 const projects = computed<ProjectStat[]>(() => {
-  // 提取所有项目
+  // 优先从 stats 获取项目数据
+  if (store.stats?.projects) {
+    return Object.entries(store.stats.projects).map(([name, stat], i) => {
+      const style = getCardStyle(name, i)
+      return {
+        name,
+        total: stat.total,
+        done: stat.done,
+        pct: stat.total > 0 ? Math.round((stat.done / stat.total) * 100) : 0,
+        gradient: style.gradient,
+      }
+    })
+  }
+
+  // 回退：从 tasks 提取
   const projectSet = new Set<string>()
   store.tasks.forEach((t) => {
     if (t.project) projectSet.add(t.project)

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { taskApi } from '@/api/taskwarrior'
+import type { Stats } from '@/api/taskwarrior'
 import type { Task, CreateTaskRequest, UpdateTaskRequest } from '@/types/task'
 
 export const useTaskStore = defineStore('task', () => {
@@ -10,9 +11,11 @@ export const useTaskStore = defineStore('task', () => {
   const searchQuery = ref('')
   const activeFilter = ref('')
 
-  const pendingTasks = computed(() => tasks.value.filter((t) => t.status === 'pending'))
-
-  const completedTasks = computed(() => tasks.value.filter((t) => t.status === 'completed'))
+  // 视图专用数据
+  const pendingTasks = ref<Task[]>([])
+  const completedTasks = ref<Task[]>([])
+  const calendarTasks = ref<Task[]>([])
+  const stats = ref<Stats | null>(null)
 
   const filteredTasks = computed(() => {
     let result = tasks.value
@@ -49,6 +52,54 @@ export const useTaskStore = defineStore('task', () => {
     error.value = null
     try {
       tasks.value = await taskApi.getTasks(params)
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchPendingTasks() {
+    loading.value = true
+    error.value = null
+    try {
+      pendingTasks.value = await taskApi.getPendingTasks()
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchCompletedTasks(days: number = 14) {
+    loading.value = true
+    error.value = null
+    try {
+      completedTasks.value = await taskApi.getCompletedTasks(days)
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchCalendarTasks() {
+    loading.value = true
+    error.value = null
+    try {
+      calendarTasks.value = await taskApi.getCalendarTasks()
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchStats() {
+    loading.value = true
+    error.value = null
+    try {
+      stats.value = await taskApi.getStats()
     } catch (e) {
       error.value = (e as Error).message
     } finally {
@@ -172,8 +223,14 @@ export const useTaskStore = defineStore('task', () => {
     activeFilter,
     pendingTasks,
     completedTasks,
+    calendarTasks,
+    stats,
     filteredTasks,
     fetchTasks,
+    fetchPendingTasks,
+    fetchCompletedTasks,
+    fetchCalendarTasks,
+    fetchStats,
     addTask,
     updateTask,
     deleteTask,

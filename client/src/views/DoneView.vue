@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import type { Task } from '@/types/task'
@@ -9,32 +9,14 @@ const { isDark } = useTheme()
 
 const daysToShow = ref(14)
 
-// 解析 taskwarrior 日期格式: 20260627T141924Z → Date
-function parseTaskDate(d: string): Date {
-  if (d.length === 16 && d[8] === 'T') {
-    const iso = `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}T${d.slice(9, 11)}:${d.slice(11, 13)}:${d.slice(13, 15)}Z`
-    return new Date(iso)
-  }
-  return new Date(d)
-}
+// 初始获取数据
+onMounted(() => {
+  store.fetchCompletedTasks(daysToShow.value)
+})
 
-const completedTasks = computed(() => {
-  const cutoffDate = new Date()
-  cutoffDate.setDate(cutoffDate.getDate() - daysToShow.value)
-
-  return store.completedTasks
-    .filter((t) => {
-      if (t.end) {
-        return parseTaskDate(t.end) >= cutoffDate
-      }
-      return false
-    })
-    .sort((a, b) => {
-      if (a.end && b.end) {
-        return parseTaskDate(b.end).getTime() - parseTaskDate(a.end).getTime()
-      }
-      return 0
-    })
+// 天数变化时重新获取
+watch(daysToShow, (days) => {
+  store.fetchCompletedTasks(days)
 })
 
 const emit = defineEmits<{
@@ -69,7 +51,7 @@ const emit = defineEmits<{
 
     <!-- 空状态 -->
     <div
-      v-if="completedTasks.length === 0"
+      v-if="store.completedTasks.length === 0"
       class="text-center py-12"
     >
       <div
@@ -94,7 +76,7 @@ const emit = defineEmits<{
     <!-- 任务列表 -->
     <div v-else class="space-y-2">
       <div
-        v-for="task in completedTasks"
+        v-for="task in store.completedTasks"
         :key="task.uuid"
         class="flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors"
         :style="{

@@ -12,8 +12,11 @@ function fmt(d: Date): string {
   return d.toISOString().split('T')[0]
 }
 
-// 统计每日完成数
+// 统计每日完成数（优先从 stats 获取）
 const countMap = computed(() => {
+  if (store.stats?.heatmap) {
+    return store.stats.heatmap
+  }
   const map: Record<string, number> = {}
   store.completedTasks.forEach((t) => {
     if (t.end) {

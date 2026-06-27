@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Sparkles, Volume2, VolumeX, Sun, Moon, Monitor } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
@@ -29,6 +29,10 @@ const currentView = ref<ViewType>('next')
 
 // 项目和标签管理
 const allProjects = computed(() => {
+  // 优先从 stats 获取项目列表
+  if (store.stats?.projects) {
+    return Object.keys(store.stats.projects)
+  }
   const set = new Set<string>()
   store.tasks.forEach((t) => {
     if (t.project) set.add(t.project)
@@ -45,29 +49,23 @@ const allTags = computed(() => {
 })
 
 // 今日完成数和累计完成数
-const todayCount = computed(() => {
-  const today = getTodayStr()
-  return store.completedTasks.filter((t) => {
-    if (!t.end) return false
-    return taskDateToISO(t.end) === today
-  }).length
-})
-const totalDone = computed(() => store.completedTasks.length)
+const todayCount = computed(() => store.stats?.todayCount ?? 0)
+const totalDone = computed(() => store.stats?.totalDone ?? 0)
 
 // 活跃任务数
-const activeCount = computed(() => store.pendingTasks.length)
+const activeCount = computed(() => store.stats?.pendingCount ?? store.pendingTasks.length)
 
 // 看板统计
 const kanbanStats = computed(() => {
-  const pending = store.tasks.filter(t => t.status === 'pending' && !t.start).length
-  const inProgress = store.tasks.filter(t => t.status === 'pending' && t.start).length
+  const pending = store.pendingTasks.filter(t => !t.start).length
+  const inProgress = store.pendingTasks.filter(t => t.start).length
   return { pending, inProgress }
 })
 
 // 今日任务数（日历用）
 const todayTaskCount = computed(() => {
-  const today = new Date().toISOString().split('T')[0]
-  return store.tasks.filter(t => t.due && t.due.startsWith(today)).length
+  const today = getTodayStr()
+  return store.calendarTasks.filter(t => t.due && taskDateToISO(t.due) === today).length
 })
 
 // 右侧副标题（跟随 tab 语境）
@@ -112,7 +110,26 @@ useKeyboard({
 })
 
 onMounted(() => {
-  store.fetchTasks()
+  store.fetchPendingTasks()
+  store.fetchStats()
+})
+
+// 视图切换时获取对应数据
+watch(currentView, (view) => {
+  switch (view) {
+    case 'next':
+      store.fetchPendingTasks()
+      break
+    case 'kanban':
+      store.fetchPendingTasks()
+      break
+    case 'calendar':
+      store.fetchCalendarTasks()
+      break
+    case 'done':
+      store.fetchCompletedTasks()
+      break
+  }
 })
 
 // 添加任务

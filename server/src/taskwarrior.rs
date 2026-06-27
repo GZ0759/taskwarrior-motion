@@ -1,5 +1,5 @@
 use crate::errors::AppError;
-use crate::models::Task;
+use crate::models::{Task, Stats, ProjectStats};
 use tokio::process::Command;
 
 pub struct TaskwarriorClient;
@@ -75,6 +75,66 @@ impl TaskwarriorClient {
 
         tasks.into_iter().next()
             .ok_or_else(|| AppError::NotFound(format!("Task {} not found", uuid)))
+    }
+
+    pub async fn export_pending(&self) -> Result<Vec<Task>, AppError> {
+        self.export(Some("status:pending")).await
+    }
+
+    pub async fn export_completed(&self, days: u32) -> Result<Vec<Task>, AppError> {
+        let filter = format!("status:completed end.after:today-{}days", days);
+        self.export(Some(&filter)).await
+    }
+
+    pub async fn export_with_due(&self) -> Result<Vec<Task>, AppError> {
+        self.export(Some("due.any:")).await
+    }
+
+    pub async fn get_stats(&self) -> Result<Stats, AppError> {
+        let all_tasks = self.export(None).await?;
+
+        let mut heatmap: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+        let mut projects: std::collections::HashMap<String, ProjectStats> = std::collections::HashMap::new();
+        let mut today_count = 0;
+        let mut total_done = 0;
+        let mut pending_count = 0;
+
+        let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+
+        for task in &all_tasks {
+            if task.status == "completed" {
+                total_done += 1;
+                if let Some(end) = &task.end {
+                    let date_str = if end.len() >= 8 && end.chars().nth(8) == Some('T') {
+                        format!("{}-{}-{}", &end[0..4], &end[4..6], &end[6..8])
+                    } else {
+                        end.split('T').next().unwrap_or(end).to_string()
+                    };
+                    *heatmap.entry(date_str.clone()).or_insert(0) += 1;
+                    if date_str == today {
+                        today_count += 1;
+                    }
+                }
+            } else if task.status == "pending" {
+                pending_count += 1;
+            }
+
+            if let Some(project) = &task.project {
+                let entry = projects.entry(project.clone()).or_insert(ProjectStats { total: 0, done: 0 });
+                entry.total += 1;
+                if task.status == "completed" {
+                    entry.done += 1;
+                }
+            }
+        }
+
+        Ok(Stats {
+            heatmap,
+            projects,
+            today_count,
+            total_done,
+            pending_count,
+        })
     }
 
     pub async fn add(&self, args: Vec<&str>) -> Result<String, AppError> {

@@ -2,15 +2,21 @@ use axum::{
     Json,
     extract::{Path, Query, State},
 };
+use serde::Deserialize;
 use std::sync::Arc;
 
 use crate::errors::AppError;
-use crate::models::{CreateTaskRequest, MessageResponse, Task, TaskQueryParams, UpdateTaskRequest};
+use crate::models::{CreateTaskRequest, MessageResponse, Stats, Task, TaskQueryParams, UpdateTaskRequest};
 use crate::taskwarrior::TaskwarriorClient;
 
 #[derive(Clone)]
 pub struct AppState {
     pub client: Arc<TaskwarriorClient>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CompletedQueryParams {
+    pub days: Option<u32>,
 }
 
 pub async fn get_tasks(
@@ -261,4 +267,38 @@ pub async fn get_task_by_uuid(
     let client = state.client.as_ref();
     let task = client.export_one(&uuid).await?;
     Ok(Json(task))
+}
+
+pub async fn get_pending_tasks(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<Task>>, AppError> {
+    let client = state.client.as_ref();
+    let tasks = client.export_pending().await?;
+    Ok(Json(tasks))
+}
+
+pub async fn get_completed_tasks(
+    State(state): State<AppState>,
+    Query(params): Query<CompletedQueryParams>,
+) -> Result<Json<Vec<Task>>, AppError> {
+    let client = state.client.as_ref();
+    let days = params.days.unwrap_or(14);
+    let tasks = client.export_completed(days).await?;
+    Ok(Json(tasks))
+}
+
+pub async fn get_calendar_tasks(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<Task>>, AppError> {
+    let client = state.client.as_ref();
+    let tasks = client.export_with_due().await?;
+    Ok(Json(tasks))
+}
+
+pub async fn get_stats(
+    State(state): State<AppState>,
+) -> Result<Json<Stats>, AppError> {
+    let client = state.client.as_ref();
+    let stats = client.get_stats().await?;
+    Ok(Json(stats))
 }

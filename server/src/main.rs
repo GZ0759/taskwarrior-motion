@@ -26,6 +26,10 @@ async fn main() {
                 .put(routes::update_task)
                 .delete(routes::delete_task),
         )
+        .route("/api/tasks/pending", get(routes::get_pending_tasks))
+        .route("/api/tasks/completed", get(routes::get_completed_tasks))
+        .route("/api/tasks/calendar", get(routes::get_calendar_tasks))
+        .route("/api/stats", get(routes::get_stats))
         .route("/api/tasks/:uuid/done", post(routes::done_task))
         .route("/api/tasks/:uuid/uncomplete", post(routes::uncomplete_task))
         .route("/api/tasks/:uuid/start", post(routes::start_task))

@@ -1,6 +1,14 @@
 import axios from 'axios'
 import type { Task, CreateTaskRequest, UpdateTaskRequest, MessageResponse } from '@/types/task'
 
+export interface Stats {
+  heatmap: Record<string, number>
+  projects: Record<string, { total: number; done: number }>
+  todayCount: number
+  totalDone: number
+  pendingCount: number
+}
+
 const api = axios.create({
   baseURL: '/api',
   headers: {
@@ -16,6 +24,26 @@ export const taskApi = {
 
   async getTask(uuid: string): Promise<Task> {
     const { data } = await api.get<Task>(`/tasks/${uuid}`)
+    return data
+  },
+
+  async getPendingTasks(): Promise<Task[]> {
+    const { data } = await api.get<Task[]>('/tasks/pending')
+    return data
+  },
+
+  async getCompletedTasks(days: number = 14): Promise<Task[]> {
+    const { data } = await api.get<Task[]>('/tasks/completed', { params: { days } })
+    return data
+  },
+
+  async getCalendarTasks(): Promise<Task[]> {
+    const { data } = await api.get<Task[]>('/tasks/calendar')
+    return data
+  },
+
+  async getStats(): Promise<Stats> {
+    const { data } = await api.get<Stats>('/stats')
     return data
   },
 

@@ -24,9 +24,11 @@ const columns = [
 ]
 
 const getColumnTasks = computed(() => {
+  // 合并 pending 和 completed 任务
+  const allTasks = [...store.pendingTasks, ...store.completedTasks]
   return columns.map((col) => ({
     ...col,
-    tasks: store.tasks.filter(col.filter),
+    tasks: allTasks.filter(col.filter),
   }))
 })
 
