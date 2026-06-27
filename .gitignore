@@ -1,6 +1,5 @@
 # Rust
 server/target/
-server/Cargo.lock
 server/.cargo/
 
 # Node
