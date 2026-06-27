@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Check, ChevronDown, ChevronUp, Calendar, FolderOpen, Tag } from '@lucide/vue'
+import { Check, ChevronDown, ChevronUp, Play, Pause } from '@lucide/vue'
 import { useTheme } from '@/composables/useTheme'
 import { useSound } from '@/composables/useSound'
+import { useTimeTracking } from '@/composables/useTimeTracking'
 import { getCardStyle } from '@/utils/card-styles'
 import type { Task, UpdateTaskRequest } from '@/types/task'
-import ProjectPicker from './ProjectPicker.vue'
-import TagPicker from './TagPicker.vue'
 
 const props = defineProps<{
   task: Task
@@ -23,6 +22,7 @@ const emit = defineEmits<{
 
 const { isDark } = useTheme()
 const { playComplete } = useSound()
+const { activeTask, formattedTime, toggleTracking } = useTimeTracking()
 
 const style = computed(() => getCardStyle(props.task.project ?? '', props.index))
 
@@ -30,6 +30,9 @@ const style = computed(() => getCardStyle(props.task.project ?? '', props.index)
 const shaking = ref(false)
 const checked = ref(false)
 const removing = ref(false)
+
+// 时间追踪
+const isTracking = computed(() => activeTask.value?.uuid === props.task.uuid)
 
 // 日期格式化
 function formatDue(d: string | null | undefined): string | null {
@@ -141,6 +144,25 @@ function openEdit() {
             'priority-l': task.priority === 'L',
           }"
         />
+
+        <!-- 计时器 -->
+        <button
+          v-if="task.status === 'pending'"
+          class="shrink-0 p-1 rounded-lg transition-colors"
+          :class="isTracking
+            ? 'text-white bg-white/20'
+            : 'text-white/40 hover:text-white hover:bg-white/15'"
+          @click="toggleTracking(task)"
+        >
+          <Pause v-if="isTracking" :size="13" />
+          <Play v-else :size="13" />
+        </button>
+
+        <!-- 计时显示 -->
+        <span
+          v-if="isTracking"
+          class="text-[10px] font-mono text-white/80"
+        >{{ formattedTime }}</span>
 
         <!-- 编辑按钮 -->
         <button
