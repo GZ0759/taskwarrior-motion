@@ -63,13 +63,18 @@ const projects = computed<ProjectStat[]>(() => {
       :style="{ color: 'var(--txt-muted)' }"
     >项目进度</div>
     <div class="space-y-3">
-      <div v-for="p in projects" :key="p.name">
+      <div
+        v-for="p in projects"
+        :key="p.name"
+        class="cursor-pointer rounded-xl px-2 py-1.5 -mx-2 transition-colors"
+        :class="isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'"
+        @click="emit('select', p.name)"
+      >
         <div class="flex justify-between mb-1.5">
-          <button
-            class="text-[11px] font-semibold transition-colors cursor-pointer hover:underline"
+          <span
+            class="text-[11px] font-semibold"
             :style="{ color: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(15,10,40,0.72)' }"
-            @click="emit('select', p.name)"
-          >{{ p.name }}</button>
+          >{{ p.name }}</span>
           <span class="text-[11px]" :style="{ color: 'var(--txt-muted)' }">
             {{ p.done }}/{{ p.total }}
           </span>
