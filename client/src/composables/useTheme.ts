@@ -1,69 +1,39 @@
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 
-type Theme = 'light' | 'dark' | 'system'
+type Theme = 'light' | 'dark'
 
-// 模块级单例状态
-const theme = ref<Theme>('system')
+const theme = ref<Theme>('light')
 const isDark = ref(false)
 let initialized = false
 
-function getSystemTheme(): boolean {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
-
 function applyTheme() {
-  const dark = theme.value === 'dark' || (theme.value === 'system' && getSystemTheme())
-  isDark.value = dark
-  document.documentElement.classList.toggle('dark', dark)
-  document.documentElement.classList.toggle('light', !dark)
-}
-
-function init() {
-  if (initialized) return
-  initialized = true
-
-  // 从 localStorage 恢复
-  const saved = localStorage.getItem('twm-theme') as Theme | null
-  if (saved) {
-    theme.value = saved
-  }
-  applyTheme()
-
-  // 监听系统主题变化
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (theme.value === 'system') {
-      applyTheme()
-    }
-  })
-
-  // 监听 theme 变化
-  watch(theme, applyTheme)
+  isDark.value = theme.value === 'dark'
+  document.documentElement.classList.toggle('dark', isDark.value)
+  document.documentElement.classList.toggle('light', !isDark.value)
 }
 
 export function useTheme() {
-  // 首次调用时初始化
-  init()
+  if (!initialized) {
+    initialized = true
+    const saved = localStorage.getItem('twm-theme') as Theme | null
+    if (saved === 'light' || saved === 'dark') {
+      theme.value = saved
+    } else if (saved === 'system' || !saved) {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      theme.value = prefersDark ? 'dark' : 'light'
+    }
+    applyTheme()
+  }
 
-  function setTheme(newTheme: Theme) {
-    theme.value = newTheme
-    localStorage.setItem('twm-theme', newTheme)
+  function setTheme(t: Theme) {
+    theme.value = t
+    localStorage.setItem('twm-theme', t)
     applyTheme()
   }
 
   function toggleTheme() {
-    if (theme.value === 'light') {
-      setTheme('dark')
-    } else if (theme.value === 'dark') {
-      setTheme('system')
-    } else {
-      setTheme('light')
-    }
+    setTheme(theme.value === 'light' ? 'dark' : 'light')
   }
 
-  return {
-    theme,
-    isDark,
-    setTheme,
-    toggleTheme,
-  }
+  return { theme, isDark, setTheme, toggleTheme }
 }

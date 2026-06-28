@@ -1,5 +1,4 @@
 import { ref, computed } from 'vue'
-import { useTaskStore } from '@/stores/task'
 import type { Task } from '@/types/task'
 
 // 模块级单例状态
@@ -25,8 +24,6 @@ const formattedTime = computed(() => {
 })
 
 export function useTimeTracking() {
-  const store = useTaskStore()
-
   function startTracking(task: Task) {
     if (activeTask.value) {
       stopTracking()
@@ -36,8 +33,6 @@ export function useTimeTracking() {
     startTime.value = new Date()
     elapsedTime.value = 0
 
-    store.startTask(task.uuid)
-
     timerInterval = setInterval(() => {
       if (startTime.value) {
         elapsedTime.value = Math.floor((new Date().getTime() - startTime.value.getTime()) / 1000)
@@ -46,10 +41,6 @@ export function useTimeTracking() {
   }
 
   function stopTracking() {
-    if (activeTask.value) {
-      store.stopTask(activeTask.value.uuid)
-    }
-
     cleanup()
   }
 

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { Sparkles, Volume2, VolumeX, Sun, Moon, Monitor, Keyboard, Settings, ListTodo, LayoutGrid, CalendarDays, Plus } from '@lucide/vue'
+import { Sparkles, Volume2, VolumeX, Settings, ListTodo, LayoutGrid, CalendarDays, Plus } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import { useKeyboard } from '@/composables/useKeyboard'
 import { useSound } from '@/composables/useSound'
-import { useTimeTracking } from '@/composables/useTimeTracking'
+import { useTaskActions } from '@/composables/useTaskActions'
 import { Motion, AnimatePresence } from 'motion-v'
 import Heatmap from '@/components/Heatmap.vue'
 import ProjectProgress from '@/components/ProjectProgress.vue'
@@ -24,17 +24,18 @@ import DayCompletedModal from '@/components/DayCompletedModal.vue'
 import TimerModal from '@/components/TimerModal.vue'
 import KanbanView from '@/views/KanbanView.vue'
 import CalendarView from '@/views/CalendarView.vue'
-import type { Task, UpdateTaskRequest } from '@/types/task'
+import type { Task } from '@/types/task'
 import { getTodayStr, taskDateToISO, parseTaskDate } from '@/utils/date'
 
 const store = useTaskStore()
-const { theme, isDark, toggleTheme } = useTheme()
+const { startTask, stopTask, updateTask, completeTask, deleteTask, saveEdit, uncompleteTask } = useTaskActions()
+const { theme, isDark, setTheme } = useTheme()
 const { soundEnabled, toggleSound } = useSound()
 
 const doneInfo = ref<{ description: string } | null>(null)
 
 type ViewType = 'tasks' | 'kanban' | 'calendar'
-const currentView = ref<ViewType>('tasks')
+const currentView = ref<ViewType>((localStorage.getItem('twm-view') as ViewType) || 'tasks')
 const leftTab = ref<'projects' | 'tags'>('projects')
 
 const allProjects = computed(() => store.allProjects)
@@ -43,6 +44,8 @@ const allTags = computed(() => store.allTags)
 const todayCount = computed(() => store.stats?.todayCount ?? 0)
 const totalDone = computed(() => store.stats?.totalDone ?? 0)
 const activeCount = computed(() => store.stats?.pendingCount ?? store.pendingTasks.length)
+
+const kanbanTasks = computed(() => [...store.pendingTasks, ...store.completedTasks])
 
 const kanbanStats = computed(() => {
   const pending = store.pendingTasks.filter(t => !t.start).length
@@ -69,12 +72,6 @@ const subtitle = computed(() => {
     default:
       return ''
   }
-})
-
-const themeIcon = computed(() => {
-  if (theme.value === 'light') return Sun
-  if (theme.value === 'dark') return Moon
-  return Monitor
 })
 
 const editingTask = ref<Task | null>(null)
@@ -107,10 +104,11 @@ useKeyboard({
       selectedIndex.value--
     }
   },
-  onCompleteTask: () => {
+  onCompleteTask: async () => {
     if (selectedIndex.value >= 0 && selectedIndex.value < store.pendingTasks.length) {
       const task = store.pendingTasks[selectedIndex.value]
-      handleCompleteTask(task.uuid, task.description)
+      const result = await completeTask(task.uuid, task.description, achievementEnabled.value)
+      if (result) doneInfo.value = result
       if (selectedIndex.value >= store.pendingTasks.length - 1) {
         selectedIndex.value = Math.max(0, store.pendingTasks.length - 2)
       }
@@ -143,6 +141,7 @@ useKeyboard({
 onMounted(() => {
   store.fetchTasks()
   store.fetchPendingTasks()
+  store.fetchCompletedTasks()
   store.fetchStats()
 })
 
@@ -154,11 +153,13 @@ watch(currentView, (view) => {
       break
     case 'kanban':
       store.fetchPendingTasks()
+      store.fetchCompletedTasks()
       break
     case 'calendar':
       store.fetchCalendarTasks()
       break
   }
+  localStorage.setItem('twm-view', view)
 })
 
 function handleAddTask(description: string) {
@@ -178,53 +179,6 @@ function handleCreate(value: string) {
 async function handleDayClick(date: string) {
   dayModalTasks.value = await store.fetchCompletedOnDate(date)
   dayModalDate.value = date
-}
-
-async function handleCompleteTask(uuid: string, desc: string) {
-  await store.completeTask(uuid)
-  await store.fetchStats()
-  if (achievementEnabled.value) {
-    doneInfo.value = { description: desc }
-  }
-}
-
-function handleUpdateTask(uuid: string, data: Partial<Task>) {
-  if (data.status === 'started') {
-    store.startTask(uuid)
-  } else if (data.status === 'pending') {
-    store.stopTask(uuid)
-  } else {
-    store.updateTask(uuid, data as UpdateTaskRequest)
-  }
-}
-
-function handleStartTask(uuid: string) {
-  const task = store.tasks.find(t => t.uuid === uuid)
-  if (task) {
-    store.startTask(uuid)
-    const { startTracking } = useTimeTracking()
-    startTracking(task)
-  }
-}
-
-function handleStopTask(uuid: string) {
-  const { activeTask, stopTracking } = useTimeTracking()
-  if (activeTask.value?.uuid === uuid) {
-    stopTracking()
-  }
-  store.stopTask(uuid)
-}
-
-function handleDeleteTask(uuid: string) {
-  store.deleteTask(uuid)
-}
-
-function handleSaveEdit(uuid: string, data: UpdateTaskRequest) {
-  store.updateTask(uuid, data)
-}
-
-function handleUncompleteTask(uuid: string) {
-  store.uncompleteTask(uuid)
 }
 
 function handleDeleteProject(name: string) {
@@ -279,19 +233,18 @@ const completedTasks = computed(() =>
 
 const tabBtnClass = (id: string, cur: string) =>
   id === cur
-    ? (isDark.value ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
-    : (isDark.value ? 'text-white/40 hover:bg-white/10 hover:text-white/70' : 'text-gray-500 hover:bg-gray-100')
+    ? 'bg-[var(--accent-indigo)] text-[var(--txt-on-color)]'
+    : 'text-[var(--txt-muted)] hover:bg-[var(--glass-panel-hover-bg)] hover:text-[var(--txt-primary)]'
 
 const ctrlBtnClass = (active = false) =>
   active
-    ? (isDark.value ? 'bg-white/12 text-white' : 'bg-black/8 text-gray-800')
-    : (isDark.value ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-black/[0.06]')
+    ? 'bg-[var(--glass-panel-hover-bg)] text-[var(--txt-primary)]'
+    : 'text-[var(--ctrl-btn)] hover:text-[var(--ctrl-btn-hover)] hover:bg-[var(--glass-panel-hover-bg)]'
 
-const panelCls = () => isDark.value
-  ? 'bg-white/[0.07] backdrop-blur-2xl border border-white/[0.13]'
-  : 'bg-white/55 backdrop-blur-2xl border border-white/80'
+const panelCls = () =>
+  'bg-[var(--glass-panel-bg)] backdrop-blur-2xl border border-[var(--glass-panel-border)]'
 
-const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0.07)'
+const divider = () => 'var(--divider)'
 </script>
 
 <template>
@@ -309,49 +262,33 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
         <!-- Header -->
         <div
           class="flex items-center justify-between px-5 pt-5 pb-4 shrink-0"
-          :style="{ borderBottom: `1px solid ${divider()}` }"
+          :style="{ borderBottom: '1px solid var(--divider)' }"
         >
           <div class="flex items-center gap-2.5">
             <div
               class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
               :style="{
-                background: 'linear-gradient(135deg,#7C3AED,#6366F1)',
-                boxShadow: '0 4px 14px rgba(99,102,241,0.45)',
+                background: 'linear-gradient(135deg, var(--btn-primary-from), var(--btn-primary-to))',
+                boxShadow: '0 4px 14px var(--btn-primary-shadow)',
               }"
             >
               <Sparkles :size="15" class="text-white" />
             </div>
             <div>
-              <div class="text-[13px] font-bold" :style="{ color: isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)' }">
+              <div class="text-[13px] font-bold" :style="{ color: 'var(--txt-primary)' }">
                 taskwarrior
               </div>
-              <div class="text-[10px]" :style="{ color: isDark ? 'rgba(255,255,255,0.42)' : 'rgba(15,10,40,0.46)' }">motion</div>
+              <div class="text-[10px]" :style="{ color: 'var(--txt-muted)' }">motion</div>
             </div>
           </div>
           <div class="flex gap-0.5">
             <button
-              class="p-2 rounded-xl transition-colors cursor-pointer"
-              :class="ctrlBtnClass()"
-              title="快捷键 (?)"
-              @click="showHelp = true"
-            >
-              <Keyboard :size="14" />
-            </button>
-            <button
               ref="settingsBtnRef"
               class="p-2 rounded-xl transition-colors cursor-pointer"
-              :class="ctrlBtnClass(showSettings)"
-              title="设置"
+              :class="ctrlBtnClass()"
               @click="openSettings"
             >
               <Settings :size="14" />
-            </button>
-            <button
-              class="p-2 rounded-xl transition-colors cursor-pointer"
-              :class="ctrlBtnClass()"
-              @click="toggleTheme"
-            >
-              <component :is="themeIcon" :size="14" />
             </button>
           </div>
         </div>
@@ -363,7 +300,7 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
           </div>
           <div
             class="flex-1 min-h-0 overflow-y-auto"
-            :style="{ borderTop: `1px solid ${divider()}`, paddingTop: '20px' }"
+            :style="{ borderTop: '1px solid var(--divider)', paddingTop: '20px' }"
           >
             <div class="flex gap-1 mb-4 items-center">
               <button
@@ -378,7 +315,7 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
               >标签</button>
               <button
                 class="ml-auto p-1.5 rounded-xl transition-colors cursor-pointer"
-                :class="ctrlBtnClass()"
+              :class="ctrlBtnClass(showSettings)"
                 @click="creatingType = leftTab === 'projects' ? 'project' : 'tag'"
               >
                 <Plus :size="12" />
@@ -398,16 +335,16 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
         <!-- Header -->
         <div
           class="flex items-center justify-between px-6 pt-5 pb-4 shrink-0"
-          :style="{ borderBottom: `1px solid ${divider()}` }"
+          :style="{ borderBottom: '1px solid var(--divider)' }"
         >
           <div>
             <h1
               class="text-xl font-black"
-              :style="{ color: isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)' }"
+              :style="{ color: 'var(--txt-primary)' }"
             >{{ title }}</h1>
             <p
               class="text-xs mt-0.5"
-              :style="{ color: isDark ? 'rgba(255,255,255,0.42)' : 'rgba(15,10,40,0.46)' }"
+              :style="{ color: 'var(--txt-muted)' }"
             >{{ subtitle }}</p>
           </div>
           <div class="flex gap-1">
@@ -440,7 +377,7 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
               tag="div"
             >
               <div class="mb-4">
-                <AddTaskBtn :is-dark="isDark" @open="creatingType = 'task'" />
+                <AddTaskBtn @open="creatingType = 'task'" />
               </div>
 
               <AnimatePresence>
@@ -454,22 +391,22 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
                   <div
                     class="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
                     :style="{
-                      background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(99,102,241,0.12)',
-                      border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(99,102,241,0.18)',
+                      background: 'var(--today-highlight)',
+                      border: '1px solid var(--border-emphasis)',
                     }"
                   >
                     <Sparkles
                       :size="26"
-                      :style="{ color: isDark ? 'rgba(255,255,255,0.45)' : '#818CF8' }"
+                      :style="{ color: 'var(--txt-accent)' }"
                     />
                   </div>
                   <p
                     class="text-base font-black mb-1"
-                    :style="{ color: isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)' }"
+                    :style="{ color: 'var(--txt-primary)' }"
                   >今日任务全部完成</p>
                   <p
                     class="text-sm"
-                    :style="{ color: isDark ? 'rgba(255,255,255,0.42)' : 'rgba(15,10,40,0.46)' }"
+                    :style="{ color: 'var(--txt-muted)' }"
                   >再添加一些，继续保持状态</p>
                 </Motion>
               </AnimatePresence>
@@ -482,16 +419,15 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
                 :selected="selectedIndex === i"
                 :all-projects="allProjects"
                 :all-tags="allTags"
-                @complete="handleCompleteTask"
+                @complete="async (uuid, desc) => { const result = await completeTask(uuid, desc, achievementEnabled); if (result) doneInfo = result }"
                 @edit="editingTask = $event"
-                @delete="handleDeleteTask"
+                @delete="deleteTask"
                 @timer="timerTask = $event"
               />
 
               <CompletedSection
                 :tasks="completedTasks"
-                :is-dark="isDark"
-                @uncomplete="handleUncompleteTask"
+                @uncomplete="uncompleteTask"
               />
             </Motion>
 
@@ -507,13 +443,13 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
               tag="div"
             >
               <KanbanView
-                :tasks="store.tasks"
+                :tasks="kanbanTasks"
                 :is-dark="isDark"
                 @edit="editingTask = $event"
-                @complete="handleCompleteTask"
-                @update="handleUpdateTask"
-                @start="handleStartTask"
-                @stop="handleStopTask"
+                @complete="async (uuid, desc) => { const result = await completeTask(uuid, desc, achievementEnabled); if (result) doneInfo = result }"
+                @update="updateTask"
+                @start="startTask"
+                @stop="stopTask"
               />
             </Motion>
 
@@ -544,12 +480,14 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
       <SettingsPanel
         v-if="showSettings"
         key="settings"
-        :is-dark="isDark"
         :pos="settingsPos"
+        :theme="theme"
         :sound-enabled="soundEnabled"
         :achievement-enabled="achievementEnabled"
+        @update:theme="setTheme"
         @update:sound-enabled="soundEnabled = $event"
         @update:achievement-enabled="achievementEnabled = $event; try { localStorage.setItem('twm-achievement', String($event)) } catch {}"
+        @show-help="showHelp = true; showSettings = false"
         @close="showSettings = false"
       />
       <CreateModal
@@ -575,8 +513,8 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
         :all-projects="allProjects"
         :all-tags="allTags"
         @close="editingTask = null"
-        @save="handleSaveEdit"
-        @delete="handleDeleteTask"
+        @save="saveEdit"
+        @delete="deleteTask"
         @add-project="handleAddProject"
         @delete-project="handleDeleteProject"
         @add-tag="() => {}"
@@ -616,8 +554,8 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
         :task="timerTask"
         :is-dark="isDark"
         @close="timerTask = null"
-        @start="handleStartTask"
-        @stop="handleStopTask"
+        @start="startTask"
+        @stop="stopTask"
       />
       <DayCompletedModal
         v-if="dayModalDate"
@@ -634,12 +572,12 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
       v-if="store.error"
       class="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-[13px] font-medium shadow-2xl"
       :style="{
-        background: isDark ? 'rgba(14,7,34,0.88)' : 'rgba(255,255,255,0.88)',
+        background: 'var(--glass-modal-bg)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        color: isDark ? '#fff' : '#1a1a2e',
-        border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.07)',
-        boxShadow: '0 8px 40px rgba(0,0,0,0.28)',
+        color: 'var(--txt-primary)',
+        border: '1px solid var(--border-default)',
+        boxShadow: 'var(--shadow-toast)',
       }"
     >
       {{ store.error }}

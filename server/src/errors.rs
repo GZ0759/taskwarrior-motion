@@ -1,7 +1,7 @@
 use axum::{
-    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
+    Json,
 };
 use serde_json::json;
 
@@ -9,6 +9,7 @@ use serde_json::json;
 pub enum AppError {
     InvalidInput(String),
     NotFound(String),
+    Conflict(String),
     TaskError(String),
     InternalError(String),
 }
@@ -18,6 +19,7 @@ impl IntoResponse for AppError {
         let (status, code, message) = match self {
             AppError::InvalidInput(msg) => (StatusCode::BAD_REQUEST, "INVALID_INPUT", msg),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, "NOT_FOUND", msg),
+            AppError::Conflict(msg) => (StatusCode::CONFLICT, "CONFLICT", msg),
             AppError::TaskError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, "TASK_ERROR", msg),
             AppError::InternalError(msg) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", msg)

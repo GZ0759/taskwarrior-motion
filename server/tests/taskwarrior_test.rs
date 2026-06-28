@@ -1,5 +1,5 @@
-use taskwarrior_motion::models::*;
 use std::collections::HashMap;
+use taskwarrior_motion::models::*;
 
 #[test]
 fn test_task_serialization() {
@@ -229,17 +229,11 @@ fn test_stats_serialization() {
     let mut projects = HashMap::new();
     projects.insert(
         "Design System".to_string(),
-        ProjectStats {
-            total: 10,
-            done: 6,
-        },
+        ProjectStats { total: 10, done: 6 },
     );
     projects.insert(
         "API Migration".to_string(),
-        ProjectStats {
-            total: 8,
-            done: 4,
-        },
+        ProjectStats { total: 8, done: 4 },
     );
 
     let stats = Stats {
@@ -253,9 +247,9 @@ fn test_stats_serialization() {
     let json = serde_json::to_string(&stats).unwrap();
     assert!(json.contains("2026-06-27"));
     assert!(json.contains("Design System"));
-    assert!(json.contains("\"today_count\":5"));
-    assert!(json.contains("\"total_done\":30"));
-    assert!(json.contains("\"pending_count\":8"));
+    assert!(json.contains("\"todayCount\":5"));
+    assert!(json.contains("\"totalDone\":30"));
+    assert!(json.contains("\"pendingCount\":8"));
 
     let deserialized: Stats = serde_json::from_str(&json).unwrap();
     assert_eq!(deserialized.today_count, 5);
@@ -270,10 +264,7 @@ fn test_stats_serialization() {
 
 #[test]
 fn test_project_stats() {
-    let stats = ProjectStats {
-        total: 10,
-        done: 6,
-    };
+    let stats = ProjectStats { total: 10, done: 6 };
 
     let json = serde_json::to_string(&stats).unwrap();
     assert!(json.contains("\"total\":10"));

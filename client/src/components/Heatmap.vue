@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useTaskStore } from '@/stores/task'
-import { useTheme } from '@/composables/useTheme'
 import { getTodayStr, taskDateToISO } from '@/utils/date'
 
 const store = useTaskStore()
-const { isDark } = useTheme()
 
 const emit = defineEmits<{
-  (e: 'dayClick', date: string): void
+  dayClick: [date: string]
 }>()
-
 // 日期工具
 function fmt(d: Date): string {
   return d.toISOString().split('T')[0]
@@ -56,7 +53,7 @@ const firstDow = computed(() => {
 const todayCount = computed(() => countMap.value[getTodayStr()] ?? 0)
 
 // 累计完成数
-const totalDone = computed(() => store.completedTasks.length)
+const totalDone = computed(() => store.stats?.totalDone ?? 0)
 
 // 鼓励文案
 const message = computed(() => {
@@ -69,24 +66,16 @@ const message = computed(() => {
 
 // 热力图颜色
 function cellBg(count: number): string {
-  if (isDark.value) {
-    if (count === 0) return 'rgba(255,255,255,0.09)'
-    if (count === 1) return 'rgba(74,222,128,0.55)'
-    if (count === 2) return 'rgba(34,197,94,0.75)'
-    if (count === 3) return 'rgba(22,163,74,0.88)'
-    return 'rgba(21,128,61,0.96)'
-  } else {
-    if (count === 0) return 'rgba(0,0,0,0.07)'
-    if (count === 1) return 'rgba(34,197,94,0.55)'
-    if (count === 2) return 'rgba(22,163,74,0.72)'
-    if (count === 3) return 'rgba(21,128,61,0.85)'
-    return 'rgba(20,83,45,0.92)'
-  }
+  if (count === 0) return 'var(--heatmap-0)'
+  if (count === 1) return 'var(--heatmap-1)'
+  if (count === 2) return 'var(--heatmap-2)'
+  if (count === 3) return 'var(--heatmap-3)'
+  return 'var(--heatmap-4)'
 }
 
 function cellTxt(count: number): string {
-  if (count > 0) return isDark.value ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.96)'
-  return isDark.value ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.38)'
+  if (count > 0) return 'var(--txt-cell-active)'
+  return 'var(--txt-cell-empty)'
 }
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六']
@@ -157,7 +146,7 @@ async function handleCellClick(cell: { date: string; count: number }) {
           v-if="cell.isToday"
           class="absolute inset-0 rounded-xl pointer-events-none"
           :style="{
-            outline: `2.5px solid ${isDark ? 'rgba(255,255,255,0.75)' : 'rgba(99,102,241,0.85)'}`,
+            outline: '2.5px solid var(--today-ring)',
             outlineOffset: '2px',
           }"
         />

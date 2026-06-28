@@ -125,15 +125,8 @@ export const useTaskStore = defineStore('task', () => {
     error.value = null
     try {
       await taskApi.createTask(task)
-      // 重新获取任务列表
       await fetchPendingTasks()
       await fetchStats()
-      // 将新任务移到顶部（通过 description 匹配）
-      const newIndex = pendingTasks.value.findIndex(t => t.description === task.description)
-      if (newIndex > 0) {
-        const [newTask] = pendingTasks.value.splice(newIndex, 1)
-        pendingTasks.value.unshift(newTask)
-      }
     } catch (e) {
       error.value = (e as Error).message
       throw e
@@ -148,6 +141,7 @@ export const useTaskStore = defineStore('task', () => {
     try {
       await taskApi.updateTask(uuid, task)
       await fetchPendingTasks()
+      await fetchCompletedTasks()
       await fetchStats()
     } catch (e) {
       error.value = (e as Error).message
@@ -178,6 +172,7 @@ export const useTaskStore = defineStore('task', () => {
     try {
       await taskApi.doneTask(uuid)
       await fetchPendingTasks()
+      await fetchCompletedTasks()
       await fetchStats()
     } catch (e) {
       error.value = (e as Error).message
@@ -209,6 +204,7 @@ export const useTaskStore = defineStore('task', () => {
     try {
       await taskApi.startTask(uuid)
       await fetchPendingTasks()
+      await fetchCompletedTasks()
     } catch (e) {
       error.value = (e as Error).message
       throw e
@@ -223,6 +219,7 @@ export const useTaskStore = defineStore('task', () => {
     try {
       await taskApi.stopTask(uuid)
       await fetchPendingTasks()
+      await fetchCompletedTasks()
     } catch (e) {
       error.value = (e as Error).message
       throw e

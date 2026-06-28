@@ -4,6 +4,29 @@ use tokio::process::Command;
 
 pub struct TaskwarriorClient;
 
+fn classify_task_error(stderr: &str) -> AppError {
+    let stderr_lower = stderr.to_lowercase();
+
+    if stderr_lower.contains("could not find")
+        || stderr_lower.contains("no match")
+        || stderr_lower.contains("not found")
+    {
+        return AppError::NotFound(stderr.to_string());
+    }
+
+    if stderr_lower.contains("already started")
+        || stderr_lower.contains("not started")
+        || stderr_lower.contains("cannot modify a recurring")
+        || stderr_lower.contains("is blocked")
+        || stderr_lower.contains("already completed")
+        || stderr_lower.contains("cannot start")
+    {
+        return AppError::Conflict(stderr.to_string());
+    }
+
+    AppError::TaskError(stderr.to_string())
+}
+
 impl Default for TaskwarriorClient {
     fn default() -> Self {
         Self::new()
@@ -82,7 +105,9 @@ impl TaskwarriorClient {
     }
 
     pub async fn export_pending(&self) -> Result<Vec<Task>, AppError> {
-        self.export(Some("status:pending")).await
+        let mut tasks = self.export(Some("status:pending")).await?;
+        tasks.sort_by(|a, b| b.entry.cmp(&a.entry));
+        Ok(tasks)
     }
 
     pub async fn export_completed(&self, days: u32) -> Result<Vec<Task>, AppError> {
@@ -158,7 +183,7 @@ impl TaskwarriorClient {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(AppError::TaskError(format!("task add failed: {}", stderr)));
+            return Err(classify_task_error(&stderr));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -178,10 +203,7 @@ impl TaskwarriorClient {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(AppError::TaskError(format!(
-                "task modify failed: {}",
-                stderr
-            )));
+            return Err(classify_task_error(&stderr));
         }
 
         Ok(())
@@ -203,10 +225,7 @@ impl TaskwarriorClient {
             } else {
                 stderr.to_string()
             };
-            return Err(AppError::TaskError(format!(
-                "task done failed: {}",
-                error_msg
-            )));
+            return Err(classify_task_error(&error_msg));
         }
 
         Ok(())
@@ -228,10 +247,7 @@ impl TaskwarriorClient {
             } else {
                 stderr.to_string()
             };
-            return Err(AppError::TaskError(format!(
-                "task uncomplete failed: {}",
-                error_msg
-            )));
+            return Err(classify_task_error(&error_msg));
         }
 
         Ok(())
@@ -269,10 +285,7 @@ impl TaskwarriorClient {
             } else {
                 stderr.to_string()
             };
-            return Err(AppError::TaskError(format!(
-                "task delete failed: {}",
-                error_msg
-            )));
+            return Err(classify_task_error(&error_msg));
         }
 
         Ok(())
@@ -294,10 +307,7 @@ impl TaskwarriorClient {
             } else {
                 stderr.to_string()
             };
-            return Err(AppError::TaskError(format!(
-                "task start failed: {}",
-                error_msg
-            )));
+            return Err(classify_task_error(&error_msg));
         }
 
         Ok(())
@@ -319,10 +329,7 @@ impl TaskwarriorClient {
             } else {
                 stderr.to_string()
             };
-            return Err(AppError::TaskError(format!(
-                "task stop failed: {}",
-                error_msg
-            )));
+            return Err(classify_task_error(&error_msg));
         }
 
         Ok(())
