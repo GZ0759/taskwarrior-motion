@@ -59,11 +59,11 @@ describe('TagManageModal', () => {
     expect(wrapper.emitted('close')).toBeTruthy()
   })
 
-  it('shows rename and delete buttons', () => {
+  it('shows delete and confirm buttons', () => {
     const wrapper = mount(TagManageModal, {
       props: { tag: 'urgent', tasks: mockTasks, isDark: true },
     })
-    expect(wrapper.text()).toContain('重命名')
-    expect(wrapper.text()).toContain('删除标签')
+    expect(wrapper.text()).toContain('删除')
+    expect(wrapper.text()).toContain('确定')
   })
 })

@@ -246,6 +246,35 @@ export const useTaskStore = defineStore('task', () => {
     }
   }
 
+  const localProjects = ref<string[]>([])
+  const localTags = ref<string[]>([])
+
+  const allProjects = computed(() => {
+    const fromTasks = new Set<string>()
+    tasks.value.forEach(t => { if (t.project) fromTasks.add(t.project) })
+    localProjects.value.forEach(p => fromTasks.add(p))
+    return Array.from(fromTasks)
+  })
+
+  const allTags = computed(() => {
+    const fromTasks = new Set<string>()
+    tasks.value.forEach(t => t.tags?.forEach(tag => fromTasks.add(tag)))
+    localTags.value.forEach(t => fromTasks.add(t))
+    return Array.from(fromTasks)
+  })
+
+  function addProject(name: string) {
+    if (!localProjects.value.includes(name) && !tasks.value.some(t => t.project === name)) {
+      localProjects.value.push(name)
+    }
+  }
+
+  function addTag(name: string) {
+    if (!localTags.value.includes(name) && !tasks.value.some(t => t.tags?.includes(name))) {
+      localTags.value.push(name)
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -299,6 +328,12 @@ export const useTaskStore = defineStore('task', () => {
     startTask,
     stopTask,
     undo,
+    localProjects,
+    localTags,
+    allProjects,
+    allTags,
+    addProject,
+    addTag,
     clearError,
     deleteProject,
     deleteTag,

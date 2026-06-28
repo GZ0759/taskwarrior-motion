@@ -82,11 +82,12 @@ const fieldBg = () => props.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04
   >
     <input
       v-model="description"
-      class="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400/30"
+      class="w-full bg-transparent outline-none font-medium"
       :style="{
-        background: fieldBg(),
         color: isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)',
-        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+        fontSize: 22,
+        lineHeight: 1.4,
+        caretColor: '#818CF8',
       }"
     />
 
@@ -132,18 +133,13 @@ const fieldBg = () => props.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04
 
     <div class="flex gap-2 pt-2" :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}` }">
       <button
-        class="flex-1 py-2.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer hover:opacity-80"
-        :style="{ color: tm(), background: fieldBg() }"
-        @click="emit('close')"
-      >取消</button>
+        class="px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors text-red-400 hover:bg-red-500/[0.12] cursor-pointer"
+        @click="handleDelete"
+      >删除</button>
       <button
         class="flex-1 py-2.5 rounded-xl bg-indigo-500 text-white text-xs font-black hover:bg-indigo-600 transition-colors cursor-pointer"
         @click="save"
       >保存</button>
-      <button
-        class="px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors text-red-400 hover:bg-red-500/[0.12] cursor-pointer"
-        @click="handleDelete"
-      >删除</button>
     </div>
   </ModalShell>
 </template>

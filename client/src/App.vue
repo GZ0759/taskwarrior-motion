@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { Sparkles, Volume2, VolumeX, Sun, Moon, Monitor, Keyboard, Settings, ListTodo, LayoutGrid, CalendarDays } from '@lucide/vue'
+import { Sparkles, Volume2, VolumeX, Sun, Moon, Monitor, Keyboard, Settings, ListTodo, LayoutGrid, CalendarDays, Plus } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import { useKeyboard } from '@/composables/useKeyboard'
@@ -11,7 +11,7 @@ import Heatmap from '@/components/Heatmap.vue'
 import ProjectProgress from '@/components/ProjectProgress.vue'
 import TaskCard from '@/components/TaskCard.vue'
 import AddTaskBtn from '@/components/AddTaskBtn.vue'
-import AddTaskModal from '@/components/AddTaskModal.vue'
+import CreateModal from '@/components/CreateModal.vue'
 import SettingsPanel from '@/components/SettingsPanel.vue'
 import CompletedSection from '@/components/CompletedSection.vue'
 import CompletionModal from '@/components/CompletionModal.vue'
@@ -21,6 +21,7 @@ import ProjectManageModal from '@/components/ProjectManageModal.vue'
 import TagList from '@/components/TagList.vue'
 import TagManageModal from '@/components/TagManageModal.vue'
 import DayCompletedModal from '@/components/DayCompletedModal.vue'
+import TimerModal from '@/components/TimerModal.vue'
 import KanbanView from '@/views/KanbanView.vue'
 import CalendarView from '@/views/CalendarView.vue'
 import type { Task, UpdateTaskRequest } from '@/types/task'
@@ -36,24 +37,8 @@ type ViewType = 'tasks' | 'kanban' | 'calendar'
 const currentView = ref<ViewType>('tasks')
 const leftTab = ref<'projects' | 'tags'>('projects')
 
-const allProjects = computed(() => {
-  if (store.stats?.projects) {
-    return Object.keys(store.stats.projects)
-  }
-  const set = new Set<string>()
-  store.tasks.forEach((t) => {
-    if (t.project) set.add(t.project)
-  })
-  return Array.from(set)
-})
-
-const allTags = computed(() => {
-  const set = new Set<string>()
-  store.tasks.forEach((t) => {
-    t.tags?.forEach((tag) => set.add(tag))
-  })
-  return Array.from(set)
-})
+const allProjects = computed(() => store.allProjects)
+const allTags = computed(() => store.allTags)
 
 const todayCount = computed(() => store.stats?.todayCount ?? 0)
 const totalDone = computed(() => store.stats?.totalDone ?? 0)
@@ -96,10 +81,12 @@ const editingTask = ref<Task | null>(null)
 const showHelp = ref(false)
 const showAddTask = ref(false)
 const showSettings = ref(false)
+const creatingType = ref<'task' | 'project' | 'tag' | null>(null)
 const settingsPos = ref({ top: 0, left: 0 })
 const settingsBtnRef = ref<HTMLButtonElement | null>(null)
 const managingProject = ref<string | null>(null)
 const managingTag = ref<string | null>(null)
+const timerTask = ref<Task | null>(null)
 const dayModalDate = ref<string | null>(null)
 const dayModalTasks = ref<Task[]>([])
 const achievementEnabled = ref((() => { try { return localStorage.getItem('twm-achievement') !== 'false' } catch { return true } })())
@@ -108,7 +95,7 @@ const selectedIndex = ref(-1)
 
 useKeyboard({
   onNewTask: () => {
-    showAddTask.value = true
+    creatingType.value = 'task'
   },
   onNextTask: () => {
     if (selectedIndex.value < store.pendingTasks.length - 1) {
@@ -139,9 +126,11 @@ useKeyboard({
     editingTask.value = null
     showHelp.value = false
     showAddTask.value = false
+    creatingType.value = null
     showSettings.value = false
     managingProject.value = null
     managingTag.value = null
+    timerTask.value = null
   },
   onShowHelp: () => {
     showHelp.value = !showHelp.value
@@ -174,6 +163,16 @@ watch(currentView, (view) => {
 
 function handleAddTask(description: string) {
   store.addTask({ description })
+}
+
+function handleCreate(value: string) {
+  if (creatingType.value === 'task') {
+    store.addTask({ description: value })
+  } else if (creatingType.value === 'project') {
+    store.addProject(value)
+  } else if (creatingType.value === 'tag') {
+    store.addTag(value)
+  }
 }
 
 async function handleDayClick(date: string) {
@@ -242,7 +241,7 @@ function handleRenameProject(oldName: string, newName: string) {
 }
 
 function handleAddProject(name: string) {
-  // Projects are task properties; no extra action needed
+  store.addProject(name)
 }
 
 function handleRenameTag(oldName: string, newName: string) {
@@ -366,7 +365,7 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
             class="flex-1 min-h-0 overflow-y-auto"
             :style="{ borderTop: `1px solid ${divider()}`, paddingTop: '20px' }"
           >
-            <div class="flex gap-1 mb-4">
+            <div class="flex gap-1 mb-4 items-center">
               <button
                 class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer"
                 :class="tabBtnClass('projects', leftTab)"
@@ -377,6 +376,13 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
                 :class="tabBtnClass('tags', leftTab)"
                 @click="leftTab = 'tags'"
               >标签</button>
+              <button
+                class="ml-auto p-1.5 rounded-xl transition-colors cursor-pointer"
+                :class="ctrlBtnClass()"
+                @click="creatingType = leftTab === 'projects' ? 'project' : 'tag'"
+              >
+                <Plus :size="12" />
+              </button>
             </div>
             <ProjectProgress v-if="leftTab === 'projects'" @select="managingProject = $event" />
             <TagList v-else @select="managingTag = $event" />
@@ -434,7 +440,7 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
               tag="div"
             >
               <div class="mb-4">
-                <AddTaskBtn :is-dark="isDark" @open="showAddTask = true" />
+                <AddTaskBtn :is-dark="isDark" @open="creatingType = 'task'" />
               </div>
 
               <AnimatePresence>
@@ -479,6 +485,7 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
                 @complete="handleCompleteTask"
                 @edit="editingTask = $event"
                 @delete="handleDeleteTask"
+                @timer="timerTask = $event"
               />
 
               <CompletedSection
@@ -545,12 +552,13 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
         @update:achievement-enabled="achievementEnabled = $event; try { localStorage.setItem('twm-achievement', String($event)) } catch {}"
         @close="showSettings = false"
       />
-      <AddTaskModal
-        v-if="showAddTask"
-        key="add"
+      <CreateModal
+        v-if="creatingType"
+        key="create"
+        :type="creatingType"
         :is-dark="isDark"
-        @add="handleAddTask"
-        @close="showAddTask = false"
+        @create="handleCreate"
+        @close="creatingType = null"
       />
       <CompletionModal
         v-if="doneInfo"
@@ -601,6 +609,15 @@ const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0
         key="help"
         :is-dark="isDark"
         @close="showHelp = false"
+      />
+      <TimerModal
+        v-if="timerTask"
+        key="timer"
+        :task="timerTask"
+        :is-dark="isDark"
+        @close="timerTask = null"
+        @start="handleStartTask"
+        @stop="handleStopTask"
       />
       <DayCompletedModal
         v-if="dayModalDate"

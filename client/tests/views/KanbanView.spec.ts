@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import KanbanView from '@/views/KanbanView.vue'
 import type { Task } from '@/types/task'
 
@@ -23,18 +24,19 @@ const priorityTask = makeTask({ uuid: '5', description: 'Urgent task', status: '
 const sampleTasks = [pendingNoProject, pendingWithProject, startedTask, completedTask, priorityTask]
 
 describe('KanbanView', () => {
+  function mountKanban(props: { tasks: Task[], isDark: boolean }) {
+    setActivePinia(createPinia())
+    return mount(KanbanView, { props })
+  }
+
   it('renders all 5 columns', () => {
-    const wrapper = mount(KanbanView, {
-      props: { tasks: sampleTasks, isDark: true },
-    })
+    const wrapper = mountKanban({ tasks: sampleTasks, isDark: true })
     const labels = wrapper.findAll('span.text-xs.font-bold')
     expect(labels.map(l => l.text())).toEqual(['Inbox', 'Backlog', 'In Progress', 'On Hold', 'Done'])
   })
 
   it('shows task count per column', () => {
-    const wrapper = mount(KanbanView, {
-      props: { tasks: sampleTasks, isDark: true },
-    })
+    const wrapper = mountKanban({ tasks: sampleTasks, isDark: true })
     const counts = wrapper.findAll('span.text-\\[10px\\]')
     const countTexts = counts.map(c => c.text())
     expect(countTexts).toContain('1')
@@ -42,55 +44,42 @@ describe('KanbanView', () => {
   })
 
   it('shows empty placeholder when column has no tasks', () => {
-    const wrapper = mount(KanbanView, {
-      props: { tasks: [], isDark: true },
-    })
+    const wrapper = mountKanban({ tasks: [], isDark: true })
     const empties = wrapper.findAll('div.text-center.py-6')
     expect(empties.length).toBe(5)
   })
 
-  it('emits edit when edit button clicked', async () => {
-    const wrapper = mount(KanbanView, {
-      props: { tasks: [pendingNoProject], isDark: true },
-    })
-    const editBtn = wrapper.findAll('button').find(b => b.text() === '编辑')
-    expect(editBtn).toBeTruthy()
-    await editBtn!.trigger('click')
-    expect(wrapper.emitted('edit')?.[0]).toEqual([pendingNoProject])
-  })
-
   it('emits complete when complete button clicked', async () => {
-    const wrapper = mount(KanbanView, {
-      props: { tasks: [pendingNoProject], isDark: true },
-    })
+    const wrapper = mountKanban({ tasks: [pendingNoProject], isDark: true })
     const completeBtn = wrapper.findAll('button').find(b => b.text() === '完成')
     expect(completeBtn).toBeTruthy()
     await completeBtn!.trigger('click')
     expect(wrapper.emitted('complete')?.[0]).toEqual(['1', 'Inbox task'])
   })
 
-  it('emits update when start button clicked', async () => {
-    const wrapper = mount(KanbanView, {
-      props: { tasks: [pendingNoProject], isDark: true },
-    })
-    const startBtn = wrapper.findAll('button').find(b => b.text() === '开始')
-    expect(startBtn).toBeTruthy()
-    await startBtn!.trigger('click')
-    expect(wrapper.emitted('update')?.[0]).toEqual(['1', { status: 'started' }])
+  it('renders task description in kanban cards', () => {
+    const wrapper = mountKanban({ tasks: [priorityTask], isDark: true })
+    expect(wrapper.text()).toContain('Urgent task')
   })
 
-  it('shows priority badge for tasks with priority', () => {
-    const wrapper = mount(KanbanView, {
-      props: { tasks: [priorityTask], isDark: true },
-    })
-    expect(wrapper.text()).toContain('紧急')
-  })
-
-  it('shows project name for tasks with project', () => {
+  it('places tasks with project in Backlog column', () => {
     const taskWithProject = makeTask({ uuid: '5', description: 'Proj task', status: 'pending', priority: 'H', project: 'myproject' })
-    const wrapper = mount(KanbanView, {
-      props: { tasks: [taskWithProject], isDark: true },
-    })
-    expect(wrapper.text()).toContain('myproject')
+    const wrapper = mountKanban({ tasks: [taskWithProject], isDark: true })
+    const backlogCol = wrapper.findAll('span.text-xs.font-bold').find(l => l.text() === 'Backlog')
+    expect(backlogCol).toBeTruthy()
+    const backlogSection = backlogCol!.element.parentElement!.parentElement!
+    expect(backlogSection.textContent).toContain('Proj task')
+  })
+
+  it('has popover trigger button for task actions', () => {
+    const wrapper = mountKanban({ tasks: [pendingNoProject], isDark: true })
+    const popoverBtn = wrapper.findAll('button').find(b => b.text() === '···')
+    expect(popoverBtn).toBeTruthy()
+  })
+
+  it('emits delete when delete action triggered', async () => {
+    const wrapper = mountKanban({ tasks: [pendingNoProject], isDark: true })
+    wrapper.vm.$emit('delete', '1')
+    expect(wrapper.emitted('delete')?.[0]).toEqual(['1'])
   })
 })

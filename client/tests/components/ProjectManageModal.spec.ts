@@ -59,19 +59,19 @@ describe('ProjectManageModal', () => {
     expect(wrapper.emitted('close')).toBeTruthy()
   })
 
-  it('shows rename and delete buttons', () => {
+  it('shows delete and confirm buttons', () => {
     const wrapper = mount(ProjectManageModal, {
       props: { project: 'Design System', tasks: mockTasks, isDark: true, allProjects: [] },
     })
-    expect(wrapper.text()).toContain('重命名')
-    expect(wrapper.text()).toContain('删除项目')
+    expect(wrapper.text()).toContain('删除')
+    expect(wrapper.text()).toContain('确定')
   })
 
-  it('shows add project input at bottom', () => {
+  it('does not show add project input at bottom', () => {
     const wrapper = mount(ProjectManageModal, {
       props: { project: 'Design System', tasks: mockTasks, isDark: true, allProjects: [] },
     })
     const input = wrapper.find('input[placeholder="新建项目名…"]')
-    expect(input.exists()).toBe(true)
+    expect(input.exists()).toBe(false)
   })
 })
