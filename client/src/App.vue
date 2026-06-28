@@ -328,33 +328,39 @@ function handleDeleteTag(name: string) {
           </div>
         </div>
 
-        <!-- 热力图 + 项目/标签 -->
-        <div class="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+        <!-- 热力图（固定） -->
+        <div class="px-5 pt-5 pb-3 shrink-0">
           <Heatmap />
+        </div>
 
-          <div :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}`, paddingTop: '20px' }">
-            <!-- tab 切换 -->
-            <div class="flex gap-1 mb-4">
-              <button
-                class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
-                :class="leftTab === 'projects'
-                  ? (isDark ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
-                  : (isDark ? 'text-white/40 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100')"
-                @click="leftTab = 'projects'"
-              >项目进度</button>
-              <button
-                class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
-                :class="leftTab === 'tags'
-                  ? (isDark ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
-                  : (isDark ? 'text-white/40 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100')"
-                @click="leftTab = 'tags'"
-              >标签</button>
-            </div>
+        <!-- 分隔线 -->
+        <div class="px-5 shrink-0">
+          <div :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}` }"></div>
+        </div>
 
-            <!-- 内容 -->
-            <ProjectProgress v-if="leftTab === 'projects'" @select="managingProject = $event" />
-            <TagList v-else @select="managingTag = $event" />
+        <!-- 项目/标签（独立滚动） -->
+        <div class="flex-1 overflow-y-auto px-5 py-4 min-h-0">
+          <!-- tab 切换 -->
+          <div class="flex gap-1 mb-4">
+            <button
+              class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
+              :class="leftTab === 'projects'
+                ? (isDark ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
+                : (isDark ? 'text-white/40 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100')"
+              @click="leftTab = 'projects'"
+            >项目进度</button>
+            <button
+              class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
+              :class="leftTab === 'tags'
+                ? (isDark ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
+                : (isDark ? 'text-white/40 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100')"
+              @click="leftTab = 'tags'"
+            >标签</button>
           </div>
+
+          <!-- 内容 -->
+          <ProjectProgress v-if="leftTab === 'projects'" @select="managingProject = $event" />
+          <TagList v-else @select="managingTag = $event" />
         </div>
       </div>
 
