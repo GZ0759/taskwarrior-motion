@@ -1,7 +1,7 @@
 export interface Task {
   uuid: string
   description: string
-  status: 'pending' | 'completed' | 'deleted'
+  status: 'pending' | 'completed' | 'deleted' | 'started' | 'on-hold' | 'recurring' | 'waiting'
   project?: string
   tags?: string[]
   priority?: 'H' | 'M' | 'L'

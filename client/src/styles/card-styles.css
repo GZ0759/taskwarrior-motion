@@ -1,53 +1,51 @@
-/* 项目色彩卡片 — 从 design-tokens.md 精确提取 */
+/* 项目色彩卡片 — 纯 index 轮询色板 */
 
-/* 固定项目配色 */
-.card-design-system {
+.card-palette-0 {
   background: linear-gradient(135deg, rgba(120,80,200,0.60) 0%, rgba(85,55,170,0.66) 100%);
   box-shadow: 0 5px 28px rgba(120,80,200,0.20), 0 1px 0 rgba(255,255,255,0.18) inset;
 }
-.card-design-system .card-accent { color: #C4B5FD; }
+.card-palette-0 .card-accent { color: #C4B5FD; }
 
-.card-api-migration {
+.card-palette-1 {
   background: linear-gradient(135deg, rgba(38,140,200,0.58) 0%, rgba(18,115,185,0.64) 100%);
   box-shadow: 0 5px 28px rgba(38,140,200,0.18), 0 1px 0 rgba(255,255,255,0.18) inset;
 }
-.card-api-migration .card-accent { color: #7DD3FC; }
+.card-palette-1 .card-accent { color: #7DD3FC; }
 
-.card-marketing {
+.card-palette-2 {
   background: linear-gradient(135deg, rgba(205,75,145,0.58) 0%, rgba(180,50,105,0.64) 100%);
   box-shadow: 0 5px 28px rgba(205,75,145,0.18), 0 1px 0 rgba(255,255,255,0.18) inset;
 }
-.card-marketing .card-accent { color: #F9A8D4; }
+.card-palette-2 .card-accent { color: #F9A8D4; }
 
-.card-q3-planning {
+.card-palette-3 {
   background: linear-gradient(135deg, rgba(200,135,35,0.60) 0%, rgba(195,85,45,0.66) 100%);
   box-shadow: 0 5px 28px rgba(200,135,35,0.20), 0 1px 0 rgba(255,255,255,0.18) inset;
 }
-.card-q3-planning .card-accent { color: #FCD34D; }
+.card-palette-3 .card-accent { color: #FCD34D; }
 
-/* Fallback 配色（未匹配项目按 index 轮询） */
-.card-fallback-0 {
+.card-palette-4 {
   background: linear-gradient(135deg, rgba(95,90,200,0.58) 0%, rgba(70,65,175,0.64) 100%);
   box-shadow: 0 5px 28px rgba(95,90,200,0.18), 0 1px 0 rgba(255,255,255,0.18) inset;
 }
-.card-fallback-0 .card-accent { color: #A5B4FC; }
+.card-palette-4 .card-accent { color: #A5B4FC; }
 
-.card-fallback-1 {
+.card-palette-5 {
   background: linear-gradient(135deg, rgba(28,170,120,0.58) 0%, rgba(15,145,100,0.64) 100%);
   box-shadow: 0 5px 28px rgba(28,170,120,0.18), 0 1px 0 rgba(255,255,255,0.18) inset;
 }
-.card-fallback-1 .card-accent { color: #6EE7B7; }
+.card-palette-5 .card-accent { color: #6EE7B7; }
 
-.card-fallback-2 {
+.card-palette-6 {
   background: linear-gradient(135deg, rgba(220,90,40,0.58) 0%, rgba(195,65,30,0.64) 100%);
   box-shadow: 0 5px 28px rgba(220,90,40,0.18), 0 1px 0 rgba(255,255,255,0.18) inset;
 }
-.card-fallback-2 .card-accent { color: #FCA5A5; }
+.card-palette-6 .card-accent { color: #FCA5A5; }
 
-/* 优先级圆点 */
-.priority-h { background-color: #FCA5A5; }
-.priority-m { background-color: #FDE68A; }
-.priority-l { background-color: #BAE6FD; }
+/* 优先级标签 */
+.priority-h { background: rgba(239,68,68,0.25); color: #fca5a5; }
+.priority-m { background: rgba(251,191,36,0.25); color: #fde68a; }
+.priority-l { background: rgba(59,130,246,0.25); color: #93c5fd; }
 
 /* 截止日期标签 */
 .due-normal {

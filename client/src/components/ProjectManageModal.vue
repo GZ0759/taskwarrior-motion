@@ -1,305 +1,198 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { X, Check, Trash2, Edit3, Plus } from '@lucide/vue'
-import { useTheme } from '@/composables/useTheme'
-import { useTaskStore } from '@/stores/task'
+import { Pencil, Trash2, Plus, CircleCheckBig } from '@lucide/vue'
+import { Motion } from 'motion-v'
+import ModalShell from './ModalShell.vue'
+import { getCardStyle } from '@/utils/card-styles'
 import type { Task } from '@/types/task'
 
 const props = defineProps<{
-  show: boolean
-  projectName: string
+  project: string
+  tasks: Task[]
+  isDark: boolean
+  allProjects: string[]
 }>()
 
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'rename', oldName: string, newName: string): void
   (e: 'delete', name: string): void
-  (e: 'create', name: string): void
+  (e: 'addProject', name: string): void
 }>()
 
-const { isDark } = useTheme()
-const store = useTaskStore()
+const tp = () => props.isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)'
+const tm = () => props.isDark ? 'rgba(255,255,255,0.42)' : 'rgba(15,10,40,0.46)'
+const fieldBg = () => props.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)'
 
-const isEditing = ref(false)
-const editName = ref('')
-const isCreating = ref(false)
-const newName = ref('')
-const showDeleteConfirm = ref(false)
+const renaming = ref(false)
+const newName = ref(props.project)
+const newProj = ref('')
+const confirmDel = ref(false)
 
-// 项目下的任务
-const projectTasks = computed(() => {
-  return store.tasks.filter(t => t.project === props.projectName)
-})
+const pTasks = computed(() => props.tasks.filter(t => t.project === props.project))
+const pending = computed(() => pTasks.value.filter(t => t.status !== 'completed'))
+const done = computed(() => pTasks.value.filter(t => t.status === 'completed'))
+const pct = computed(() => pTasks.value.length > 0 ? Math.round((done.value.length / pTasks.value.length) * 100) : 0)
 
-const pendingTasks = computed(() => projectTasks.value.filter(t => t.status === 'pending'))
-const completedTasks = computed(() => projectTasks.value.filter(t => t.status === 'completed'))
+const cs = computed(() => getCardStyle(props.project, 0))
 
-// 进度
-const progress = computed(() => {
-  const total = projectTasks.value.length
-  const done = completedTasks.value.length
-  return { total, done, pct: total > 0 ? Math.round((done / total) * 100) : 0 }
-})
-
-function startEdit() {
-  editName.value = props.projectName
-  isEditing.value = true
-}
-
-function confirmEdit() {
-  if (editName.value.trim() && editName.value !== props.projectName) {
-    emit('rename', props.projectName, editName.value.trim())
+function handleRename() {
+  if (newName.value.trim() && newName.value !== props.project) {
+    emit('rename', props.project, newName.value.trim())
   }
-  isEditing.value = false
+  renaming.value = false
 }
 
-function confirmDelete() {
-  emit('delete', props.projectName)
-  showDeleteConfirm.value = false
+function handleDelete() {
+  emit('delete', props.project)
   emit('close')
 }
 
-function startCreate() {
-  newName.value = ''
-  isCreating.value = true
-}
-
-function confirmCreate() {
-  if (newName.value.trim()) {
-    emit('create', newName.value.trim())
+function handleAddProject() {
+  if (newProj.value.trim()) {
+    emit('addProject', newProj.value.trim())
+    newProj.value = ''
   }
-  isCreating.value = false
-  newName.value = ''
 }
 </script>
 
 <template>
-  <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-6">
-    <!-- 遮罩 -->
+  <ModalShell
+    :title="project"
+    :subtitle="`${done.length}/${pTasks.length} 完成 · ${pct}%`"
+    :is-dark="isDark"
+    max-w="max-w-lg"
+    @close="emit('close')"
+  >
     <div
-      class="absolute inset-0 glass-overlay"
-      @click="emit('close')"
-    />
+      class="rounded-xl overflow-hidden h-2"
+      :style="{ background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)' }"
+    >
+      <Motion
+        :initial="{ width: 0 }"
+        :animate="{ width: `${pct}%` }"
+        :transition="{ duration: 0.8 }"
+        class="h-full rounded-xl"
+        :style="{ background: cs.gradient }"
+      />
+    </div>
 
-    <!-- 弹窗 -->
+    <div v-if="!confirmDel && !renaming" class="flex gap-2">
+      <button
+        class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+        :style="{ background: fieldBg(), color: tm() }"
+        @click="renaming = true; newName = project"
+      >
+        <Pencil :size="11" />重命名
+      </button>
+      <button
+        class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-500/15 transition-colors cursor-pointer"
+        @click="confirmDel = true"
+      >
+        <Trash2 :size="11" />删除项目
+      </button>
+    </div>
+
+    <div v-if="renaming" class="flex gap-2">
+      <input
+        v-model="newName"
+        class="flex-1 rounded-xl px-3 py-2 text-xs outline-none"
+        :style="{
+          background: fieldBg(),
+          color: tp(),
+          border: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'}`,
+        }"
+        @keydown.enter="handleRename"
+        @keydown.escape="renaming = false"
+      />
+      <button
+        class="px-3 py-2 rounded-xl bg-indigo-500 text-white text-xs font-bold cursor-pointer"
+        @click="handleRename"
+      >确认</button>
+      <button
+        class="px-3 py-2 rounded-xl text-xs cursor-pointer"
+        :style="{ background: fieldBg(), color: tm() }"
+        @click="renaming = false"
+      >取消</button>
+    </div>
+
     <div
-      class="relative z-10 w-full max-w-lg rounded-3xl overflow-hidden max-h-[80vh] flex flex-col"
+      v-if="confirmDel"
+      class="rounded-2xl p-4"
       :style="{
-        background: isDark ? 'rgba(20,8,50,0.95)' : 'rgba(255,255,255,0.95)',
-        border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.10)'}`,
-        boxShadow: '0 32px 90px rgba(0,0,0,0.30)',
+        background: isDark ? 'rgba(239,68,68,0.12)' : 'rgba(254,242,242,1)',
+        border: '1px solid rgba(239,68,68,0.25)',
       }"
     >
-      <!-- 头部 -->
-      <div
-        class="flex items-center justify-between px-6 py-4 shrink-0"
-        :style="{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'}` }"
-      >
-        <div class="flex-1 min-w-0">
-          <!-- 项目名 / 编辑模式 -->
-          <div v-if="isEditing" class="flex items-center gap-2">
-            <input
-              v-model="editName"
-              class="flex-1 px-3 py-1.5 rounded-xl text-base font-black outline-none"
-              :style="{
-                background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
-                color: 'var(--txt-primary)',
-              }"
-              @keydown.enter="confirmEdit"
-              @keydown.escape="isEditing = false"
-            />
-            <button
-              class="p-1.5 rounded-xl transition-colors"
-              :class="isDark ? 'text-green-400 hover:bg-green-400/10' : 'text-green-600 hover:bg-green-50'"
-              @click="confirmEdit"
-            >
-              <Check :size="16" />
-            </button>
-          </div>
-          <h3 v-else class="text-base font-black truncate" :style="{ color: 'var(--txt-primary)' }">
-            {{ projectName }}
-          </h3>
-          <p class="text-xs mt-0.5" :style="{ color: 'var(--txt-muted)' }">
-            {{ progress.done }}/{{ progress.total }} 完成 ({{ progress.pct }}%)
-          </p>
-        </div>
+      <p class="text-sm font-medium text-red-400 mb-3">确认删除「{{ project }}」？该项目下所有任务将失去项目关联。</p>
+      <div class="flex gap-2">
         <button
-          class="p-1.5 rounded-xl transition-colors ml-2"
-          :style="{ color: 'var(--txt-muted)' }"
-          @click="emit('close')"
-        >
-          <X :size="16" />
-        </button>
+          class="flex-1 py-2 rounded-xl bg-red-500 text-white text-xs font-bold cursor-pointer"
+          @click="handleDelete"
+        >确认删除</button>
+        <button
+          class="flex-1 py-2 rounded-xl text-xs cursor-pointer"
+          :style="{ background: fieldBg(), color: tm() }"
+          @click="confirmDel = false"
+        >取消</button>
       </div>
+    </div>
 
-      <!-- 进度条 -->
-      <div
-        class="px-6 py-3 shrink-0"
-        :style="{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}` }"
-      >
+    <div v-if="pending.length > 0">
+      <p class="text-[10px] font-black uppercase tracking-widest mb-2" :style="{ color: tm() }">
+        待办 ({{ pending.length }})
+      </p>
+      <div class="space-y-1">
         <div
-          class="h-2 rounded-full overflow-hidden"
-          :style="{ background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)' }"
+          v-for="t in pending"
+          :key="t.uuid"
+          class="flex items-center gap-2 px-3 py-2 rounded-xl"
+          :style="{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }"
         >
           <div
-            class="h-full rounded-full transition-all duration-500"
-            :style="{ width: `${progress.pct}%`, background: 'linear-gradient(90deg, #818cf8, #6366f1)' }"
+            class="w-3 h-3 rounded-full border-2 shrink-0"
+            :style="{ borderColor: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.20)' }"
           />
-        </div>
-      </div>
-
-      <!-- 操作按钮 -->
-      <div
-        class="flex gap-2 px-6 py-3 shrink-0"
-        :style="{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}` }"
-      >
-        <button
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-          :class="isDark
-            ? 'text-white/60 hover:text-white hover:bg-white/10'
-            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'"
-          @click="startEdit"
-        >
-          <Edit3 :size="12" /> 重命名
-        </button>
-        <button
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-          :class="isDark
-            ? 'text-red-400/60 hover:text-red-400 hover:bg-red-400/10'
-            : 'text-red-500 hover:text-red-600 hover:bg-red-50'"
-          @click="showDeleteConfirm = true"
-        >
-          <Trash2 :size="12" /> 删除项目
-        </button>
-      </div>
-
-      <!-- 任务列表 -->
-      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-        <!-- 待办任务 -->
-        <div v-if="pendingTasks.length > 0">
-          <p class="text-[10px] font-black uppercase tracking-widest mb-2" :style="{ color: 'var(--txt-muted)' }">
-            待办 ({{ pendingTasks.length }})
-          </p>
-          <div class="space-y-1.5">
-            <div
-              v-for="task in pendingTasks"
-              :key="task.uuid"
-              class="flex items-center gap-2 px-3 py-2 rounded-xl"
-              :style="{ background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }"
-            >
-              <div
-                class="w-4 h-4 rounded-full border-2 shrink-0"
-                :style="{ borderColor: isDark ? 'rgba(255,255,255,0.30)' : 'rgba(0,0,0,0.20)' }"
-              />
-              <span class="text-sm truncate" :style="{ color: 'var(--txt-primary)' }">
-                {{ task.description }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 已完成任务 -->
-        <div v-if="completedTasks.length > 0">
-          <p class="text-[10px] font-black uppercase tracking-widest mb-2" :style="{ color: 'var(--txt-muted)' }">
-            已完成 ({{ completedTasks.length }})
-          </p>
-          <div class="space-y-1.5">
-            <div
-              v-for="task in completedTasks"
-              :key="task.uuid"
-              class="flex items-center gap-2 px-3 py-2 rounded-xl"
-              :style="{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }"
-            >
-              <div
-                class="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
-                :style="{ background: isDark ? 'rgba(34,197,94,0.20)' : 'rgba(34,197,94,0.15)' }"
-              >
-                <Check :size="10" :stroke-width="3" :style="{ color: isDark ? '#86efac' : '#22c55e' }" />
-              </div>
-              <span class="text-sm truncate line-through opacity-60" :style="{ color: 'var(--txt-primary)' }">
-                {{ task.description }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 空状态 -->
-        <div
-          v-if="projectTasks.length === 0"
-          class="text-center py-8"
-        >
-          <p class="text-sm" :style="{ color: 'var(--txt-muted)' }">该项目暂无任务</p>
-        </div>
-      </div>
-
-      <!-- 新建项目名 -->
-      <div
-        class="px-6 py-3 shrink-0"
-        :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}` }"
-      >
-        <div v-if="isCreating" class="flex items-center gap-2">
-          <input
-            v-model="newName"
-            placeholder="新项目名称…"
-            class="flex-1 px-3 py-1.5 rounded-xl text-xs outline-none"
-            :style="{
-              background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
-              color: 'var(--txt-primary)',
-            }"
-            @keydown.enter="confirmCreate"
-            @keydown.escape="isCreating = false"
-          />
-          <button
-            class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-            :class="isDark ? 'bg-white/15 text-white hover:bg-white/25' : 'bg-indigo-500 text-white hover:bg-indigo-600'"
-            @click="confirmCreate"
-          >创建</button>
-          <button
-            class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-            :class="isDark ? 'text-white/40 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100'"
-            @click="isCreating = false"
-          >取消</button>
-        </div>
-        <button
-          v-else
-          class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors"
-          :class="isDark
-            ? 'text-white/40 hover:text-white hover:bg-white/10'
-            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'"
-          @click="startCreate"
-        >
-          <Plus :size="12" /> 新建项目名
-        </button>
-      </div>
-
-      <!-- 删除确认 -->
-      <div
-        v-if="showDeleteConfirm"
-        class="absolute inset-0 flex items-center justify-center z-20"
-        :style="{
-          background: isDark ? 'rgba(20,8,50,0.95)' : 'rgba(255,255,255,0.95)',
-        }"
-      >
-        <div class="text-center px-6">
-          <p class="text-base font-black mb-2" :style="{ color: 'var(--txt-primary)' }">
-            确认删除「{{ projectName }}」？
-          </p>
-          <p class="text-sm mb-6" :style="{ color: 'var(--txt-muted)' }">
-            项目下的任务不会被删除，但会失去项目归属
-          </p>
-          <div class="flex gap-3 justify-center">
-            <button
-              class="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
-              :class="isDark ? 'text-white/60 hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100'"
-              @click="showDeleteConfirm = false"
-            >取消</button>
-            <button
-              class="px-4 py-2 rounded-xl text-sm font-bold transition-colors bg-red-500 text-white hover:bg-red-600"
-              @click="confirmDelete"
-            >删除</button>
-          </div>
+          <span class="text-xs" :style="{ color: tp() }">{{ t.description }}</span>
         </div>
       </div>
     </div>
-  </div>
+
+    <div v-if="done.length > 0">
+      <p class="text-[10px] font-black uppercase tracking-widest mb-2" :style="{ color: tm() }">
+        已完成 ({{ done.length }})
+      </p>
+      <div class="space-y-1">
+        <div
+          v-for="t in done.slice(0, 8)"
+          :key="t.uuid"
+          class="flex items-center gap-2 px-3 py-2 rounded-xl"
+          :style="{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }"
+        >
+          <CircleCheckBig :size="12" :style="{ color: '#4ADE80', flexShrink: 0 }" />
+          <span class="text-xs line-through" :style="{ color: tm() }">{{ t.description }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-2 pt-1">
+      <input
+        v-model="newProj"
+        placeholder="新建项目名…"
+        class="flex-1 rounded-xl px-3 py-2 text-xs outline-none"
+        :style="{
+          background: fieldBg(),
+          color: tp(),
+          border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}`,
+        }"
+        @keydown.enter="handleAddProject"
+      />
+      <button
+        class="px-3 py-2 rounded-xl bg-indigo-500 text-white text-xs font-bold hover:bg-indigo-600 cursor-pointer"
+        @click="handleAddProject"
+      >
+        <Plus :size="12" />
+      </button>
+    </div>
+  </ModalShell>
 </template>

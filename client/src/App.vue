@@ -1,20 +1,26 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { Sparkles, Volume2, VolumeX, Sun, Moon, SunMoon, ChevronDown, Check } from '@lucide/vue'
+import { Sparkles, Volume2, VolumeX, Sun, Moon, Monitor, Keyboard, Settings, ListTodo, LayoutGrid, CalendarDays } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import { useKeyboard } from '@/composables/useKeyboard'
 import { useSound } from '@/composables/useSound'
+import { useTimeTracking } from '@/composables/useTimeTracking'
+import { Motion, AnimatePresence } from 'motion-v'
 import Heatmap from '@/components/Heatmap.vue'
 import ProjectProgress from '@/components/ProjectProgress.vue'
 import TaskCard from '@/components/TaskCard.vue'
-import AddTask from '@/components/AddTask.vue'
+import AddTaskBtn from '@/components/AddTaskBtn.vue'
+import AddTaskModal from '@/components/AddTaskModal.vue'
+import SettingsPanel from '@/components/SettingsPanel.vue'
+import CompletedSection from '@/components/CompletedSection.vue'
 import CompletionModal from '@/components/CompletionModal.vue'
 import TaskEditModal from '@/components/TaskEditModal.vue'
 import HelpModal from '@/components/HelpModal.vue'
 import ProjectManageModal from '@/components/ProjectManageModal.vue'
 import TagList from '@/components/TagList.vue'
 import TagManageModal from '@/components/TagManageModal.vue'
+import DayCompletedModal from '@/components/DayCompletedModal.vue'
 import KanbanView from '@/views/KanbanView.vue'
 import CalendarView from '@/views/CalendarView.vue'
 import type { Task, UpdateTaskRequest } from '@/types/task'
@@ -24,16 +30,13 @@ const store = useTaskStore()
 const { theme, isDark, toggleTheme } = useTheme()
 const { soundEnabled, toggleSound } = useSound()
 
-// 完成弹窗
-const doneInfo = ref<{ description: string; todayCount: number; totalDone: number } | null>(null)
+const doneInfo = ref<{ description: string } | null>(null)
 
-// 视图切换
-type ViewType = 'next' | 'kanban' | 'calendar'
-const currentView = ref<ViewType>('next')
+type ViewType = 'tasks' | 'kanban' | 'calendar'
+const currentView = ref<ViewType>('tasks')
+const leftTab = ref<'projects' | 'tags'>('projects')
 
-// 项目和标签管理
 const allProjects = computed(() => {
-  // 优先从 stats 获取项目列表
   if (store.stats?.projects) {
     return Object.keys(store.stats.projects)
   }
@@ -52,40 +55,27 @@ const allTags = computed(() => {
   return Array.from(set)
 })
 
-// 今日完成数和累计完成数
 const todayCount = computed(() => store.stats?.todayCount ?? 0)
 const totalDone = computed(() => store.stats?.totalDone ?? 0)
-
-// 活跃任务数
 const activeCount = computed(() => store.stats?.pendingCount ?? store.pendingTasks.length)
 
-// 看板统计
 const kanbanStats = computed(() => {
   const pending = store.pendingTasks.filter(t => !t.start).length
   const inProgress = store.pendingTasks.filter(t => t.start).length
   return { pending, inProgress }
 })
 
-// 今日任务数（日历用）
 const todayTaskCount = computed(() => {
   const today = getTodayStr()
   return store.calendarTasks.filter(t => t.due && taskDateToISO(t.due) === today).length
 })
 
-// 右侧标题（跟随 tab 变化）
-const title = computed(() => {
-  switch (currentView.value) {
-    case 'next': return '事项'
-    case 'kanban': return '看板'
-    case 'calendar': return '日历'
-    default: return '事项'
-  }
-})
+const rtTitles: Record<ViewType, string> = { tasks: '事项', kanban: '看板', calendar: '日历' }
+const title = computed(() => rtTitles[currentView.value])
 
-// 右侧副标题（跟随 tab 语境）
 const subtitle = computed(() => {
   switch (currentView.value) {
-    case 'next':
+    case 'tasks':
       return `${activeCount.value} 项待完成`
     case 'kanban':
       return `${kanbanStats.value.pending} 个待办 · ${kanbanStats.value.inProgress} 个进行中`
@@ -96,21 +86,29 @@ const subtitle = computed(() => {
   }
 })
 
-// 主题图标
 const themeIcon = computed(() => {
   if (theme.value === 'light') return Sun
   if (theme.value === 'dark') return Moon
-  return SunMoon
+  return Monitor
 })
 
-// 键盘快捷键
+const editingTask = ref<Task | null>(null)
+const showHelp = ref(false)
+const showAddTask = ref(false)
+const showSettings = ref(false)
+const settingsPos = ref({ top: 0, left: 0 })
+const settingsBtnRef = ref<HTMLButtonElement | null>(null)
+const managingProject = ref<string | null>(null)
+const managingTag = ref<string | null>(null)
+const dayModalDate = ref<string | null>(null)
+const dayModalTasks = ref<Task[]>([])
+const achievementEnabled = ref((() => { try { return localStorage.getItem('twm-achievement') !== 'false' } catch { return true } })())
+
 const selectedIndex = ref(-1)
 
 useKeyboard({
   onNewTask: () => {
-    // 聚焦到 AddTask 输入框（通过事件触发）
-    const input = document.querySelector('input[placeholder*="输入任务"]') as HTMLInputElement
-    input?.focus()
+    showAddTask.value = true
   },
   onNextTask: () => {
     if (selectedIndex.value < store.pendingTasks.length - 1) {
@@ -125,7 +123,7 @@ useKeyboard({
   onCompleteTask: () => {
     if (selectedIndex.value >= 0 && selectedIndex.value < store.pendingTasks.length) {
       const task = store.pendingTasks[selectedIndex.value]
-      store.completeTask(task.uuid)
+      handleCompleteTask(task.uuid, task.description)
       if (selectedIndex.value >= store.pendingTasks.length - 1) {
         selectedIndex.value = Math.max(0, store.pendingTasks.length - 2)
       }
@@ -139,6 +137,11 @@ useKeyboard({
   onCloseModal: () => {
     doneInfo.value = null
     editingTask.value = null
+    showHelp.value = false
+    showAddTask.value = false
+    showSettings.value = false
+    managingProject.value = null
+    managingTag.value = null
   },
   onShowHelp: () => {
     showHelp.value = !showHelp.value
@@ -149,16 +152,15 @@ useKeyboard({
 })
 
 onMounted(() => {
-  store.fetchTasks()       // 填充 store.tasks，供标签/项目选择器使用
+  store.fetchTasks()
   store.fetchPendingTasks()
   store.fetchStats()
 })
 
-// 视图切换时获取对应数据
 watch(currentView, (view) => {
   selectedIndex.value = -1
   switch (view) {
-    case 'next':
+    case 'tasks':
       store.fetchPendingTasks()
       break
     case 'kanban':
@@ -170,93 +172,80 @@ watch(currentView, (view) => {
   }
 })
 
-// 添加任务
 function handleAddTask(description: string) {
   store.addTask({ description })
 }
 
-// 完成任务（带动画和弹窗）
+async function handleDayClick(date: string) {
+  dayModalTasks.value = await store.fetchCompletedOnDate(date)
+  dayModalDate.value = date
+}
+
 async function handleCompleteTask(uuid: string, desc: string) {
   await store.completeTask(uuid)
-  // 等待 stats 更新后再弹窗
   await store.fetchStats()
-  doneInfo.value = {
-    description: desc,
-    todayCount: todayCount.value,
-    totalDone: totalDone.value,
+  if (achievementEnabled.value) {
+    doneInfo.value = { description: desc }
   }
 }
 
-// 更新任务
-function handleUpdateTask(uuid: string, data: UpdateTaskRequest) {
-  store.updateTask(uuid, data)
+function handleUpdateTask(uuid: string, data: Partial<Task>) {
+  if (data.status === 'started') {
+    store.startTask(uuid)
+  } else if (data.status === 'pending') {
+    store.stopTask(uuid)
+  } else {
+    store.updateTask(uuid, data as UpdateTaskRequest)
+  }
 }
 
-// 删除任务
+function handleStartTask(uuid: string) {
+  const task = store.tasks.find(t => t.uuid === uuid)
+  if (task) {
+    store.startTask(uuid)
+    const { startTracking } = useTimeTracking()
+    startTracking(task)
+  }
+}
+
+function handleStopTask(uuid: string) {
+  const { activeTask, stopTracking } = useTimeTracking()
+  if (activeTask.value?.uuid === uuid) {
+    stopTracking()
+  }
+  store.stopTask(uuid)
+}
+
 function handleDeleteTask(uuid: string) {
   store.deleteTask(uuid)
-}
-
-// 编辑任务弹窗
-const editingTask = ref<Task | null>(null)
-const showHelp = ref(false)
-const showCompleted = ref(false)
-const managingProject = ref<string | null>(null)
-const managingTag = ref<string | null>(null)
-const leftTab = ref<'projects' | 'tags'>('projects')
-
-function toggleCompleted() {
-  showCompleted.value = !showCompleted.value
-  if (showCompleted.value && store.completedTasks.length === 0) {
-    store.fetchCompletedTasks(30)
-  }
-}
-
-function handleEditFromView(task: Task) {
-  editingTask.value = task
-}
-
-function handleEditFromCard(task: Task) {
-  editingTask.value = task
 }
 
 function handleSaveEdit(uuid: string, data: UpdateTaskRequest) {
   store.updateTask(uuid, data)
 }
 
-// 取消完成任务
 function handleUncompleteTask(uuid: string) {
   store.uncompleteTask(uuid)
 }
 
-// 项目/标签 CRUD（通过修改任务实现）
-function handleAddProject(_name: string) {
-  // 项目是任务的属性，添加项目时不需要额外操作
-  // 当用户在 ProjectPicker 中添加新项目并保存任务时，项目会自动出现
-}
-
 function handleDeleteProject(name: string) {
-  // 删除项目：将该项目下的所有任务的 project 清空
   store.tasks
     .filter((t) => t.project === name)
     .forEach((t) => store.updateTask(t.uuid, { project: '' }))
 }
 
 function handleRenameProject(oldName: string, newName: string) {
-  // 重命名项目：批量修改所有关联任务的 project 字段
   store.tasks
     .filter((t) => t.project === oldName)
     .forEach((t) => store.updateTask(t.uuid, { project: newName }))
   store.fetchStats()
 }
 
-function handleCreateProject(name: string) {
-  // 创建项目名（不创建任务，只是让用户知道可以用了）
-  // 无需后端操作，前端 allProjects 会自动更新
+function handleAddProject(name: string) {
+  // Projects are task properties; no extra action needed
 }
 
 function handleRenameTag(oldName: string, newName: string) {
-  // 重命名标签：批量修改所有关联任务的标签
   store.tasks
     .filter((t) => t.tags?.includes(oldName))
     .forEach((t) =>
@@ -267,18 +256,43 @@ function handleRenameTag(oldName: string, newName: string) {
   store.fetchStats()
 }
 
-function handleAddTag(_name: string) {
-  // 标签同理，添加时不需要额外操作
-}
-
 function handleDeleteTag(name: string) {
-  // 删除标签：从所有任务中移除该标签
   store.tasks
     .filter((t) => t.tags?.includes(name))
     .forEach((t) =>
       store.updateTask(t.uuid, { tags: t.tags?.filter((tag) => tag !== name) })
     )
 }
+
+function openSettings() {
+  if (!showSettings.value && settingsBtnRef.value) {
+    const r = settingsBtnRef.value.getBoundingClientRect()
+    settingsPos.value = { top: r.bottom + 8, left: Math.max(8, r.right - 196) }
+  }
+  showSettings.value = !showSettings.value
+}
+
+const completedTasks = computed(() =>
+  store.completedTasks.sort((a, b) =>
+    (b.end ?? '').localeCompare(a.end ?? '')
+  )
+)
+
+const tabBtnClass = (id: string, cur: string) =>
+  id === cur
+    ? (isDark.value ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
+    : (isDark.value ? 'text-white/40 hover:bg-white/10 hover:text-white/70' : 'text-gray-500 hover:bg-gray-100')
+
+const ctrlBtnClass = (active = false) =>
+  active
+    ? (isDark.value ? 'bg-white/12 text-white' : 'bg-black/8 text-gray-800')
+    : (isDark.value ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-black/[0.06]')
+
+const panelCls = () => isDark.value
+  ? 'bg-white/[0.07] backdrop-blur-2xl border border-white/[0.13]'
+  : 'bg-white/55 backdrop-blur-2xl border border-white/80'
+
+const divider = () => isDark.value ? 'rgba(255,255,255,0.10)' : 'rgba(15,10,40,0.07)'
 </script>
 
 <template>
@@ -287,40 +301,55 @@ function handleDeleteTag(name: string) {
     :class="isDark ? 'mesh-dark' : 'mesh-light'"
   >
     <div class="flex gap-5 p-5 w-full h-full">
-      <!-- ── 左侧面板 ── -->
+      <!-- LEFT PANEL -->
       <div
         class="flex flex-col rounded-3xl shadow-2xl overflow-hidden shrink-0"
-        :class="isDark ? 'glass-dark' : 'glass-light'"
+        :class="panelCls()"
         :style="{ width: '310px', minWidth: '270px' }"
       >
         <!-- Header -->
         <div
           class="flex items-center justify-between px-5 pt-5 pb-4 shrink-0"
-          :style="{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}` }"
+          :style="{ borderBottom: `1px solid ${divider()}` }"
         >
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 logo-gradient">
+            <div
+              class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              :style="{
+                background: 'linear-gradient(135deg,#7C3AED,#6366F1)',
+                boxShadow: '0 4px 14px rgba(99,102,241,0.45)',
+              }"
+            >
               <Sparkles :size="15" class="text-white" />
             </div>
             <div>
-              <div class="text-[13px] font-bold" :style="{ color: 'var(--txt-primary)' }">
+              <div class="text-[13px] font-bold" :style="{ color: isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)' }">
                 taskwarrior
               </div>
-              <div class="text-[10px]" :style="{ color: 'var(--txt-muted)' }">motion</div>
+              <div class="text-[10px]" :style="{ color: isDark ? 'rgba(255,255,255,0.42)' : 'rgba(15,10,40,0.46)' }">motion</div>
             </div>
           </div>
           <div class="flex gap-0.5">
             <button
-              class="p-2 rounded-xl transition-colors"
-              :style="{ color: 'var(--ctrl-btn)' }"
-              @click="toggleSound"
+              class="p-2 rounded-xl transition-colors cursor-pointer"
+              :class="ctrlBtnClass()"
+              title="快捷键 (?)"
+              @click="showHelp = true"
             >
-              <Volume2 v-if="soundEnabled" :size="14" />
-              <VolumeX v-else :size="14" />
+              <Keyboard :size="14" />
             </button>
             <button
-              class="p-2 rounded-xl transition-colors"
-              :style="{ color: 'var(--ctrl-btn)' }"
+              ref="settingsBtnRef"
+              class="p-2 rounded-xl transition-colors cursor-pointer"
+              :class="ctrlBtnClass(showSettings)"
+              title="设置"
+              @click="openSettings"
+            >
+              <Settings :size="14" />
+            </button>
+            <button
+              class="p-2 rounded-xl transition-colors cursor-pointer"
+              :class="ctrlBtnClass()"
               @click="toggleTheme"
             >
               <component :is="themeIcon" :size="14" />
@@ -328,266 +357,276 @@ function handleDeleteTag(name: string) {
           </div>
         </div>
 
-        <!-- 热力图（固定） -->
-        <div class="px-5 pt-5 pb-3 shrink-0">
-          <Heatmap />
-        </div>
-
-        <!-- 分隔线 -->
-        <div class="px-5 shrink-0">
-          <div :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}` }"></div>
-        </div>
-
-        <!-- 项目/标签（独立滚动） -->
-        <div class="flex-1 overflow-y-auto px-5 py-4 min-h-0">
-          <!-- tab 切换 -->
-          <div class="flex gap-1 mb-4">
-            <button
-              class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
-              :class="leftTab === 'projects'
-                ? (isDark ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
-                : (isDark ? 'text-white/40 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100')"
-              @click="leftTab = 'projects'"
-            >项目进度</button>
-            <button
-              class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
-              :class="leftTab === 'tags'
-                ? (isDark ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
-                : (isDark ? 'text-white/40 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100')"
-              @click="leftTab = 'tags'"
-            >标签</button>
+        <!-- Heatmap + Projects/Tags -->
+        <div class="flex-1 flex flex-col min-h-0 px-5 py-5">
+          <div class="shrink-0">
+            <Heatmap @day-click="handleDayClick" />
           </div>
-
-          <!-- 内容 -->
-          <ProjectProgress v-if="leftTab === 'projects'" @select="managingProject = $event" />
-          <TagList v-else @select="managingTag = $event" />
+          <div
+            class="flex-1 min-h-0 overflow-y-auto"
+            :style="{ borderTop: `1px solid ${divider()}`, paddingTop: '20px' }"
+          >
+            <div class="flex gap-1 mb-4">
+              <button
+                class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer"
+                :class="tabBtnClass('projects', leftTab)"
+                @click="leftTab = 'projects'"
+              >项目进度</button>
+              <button
+                class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer"
+                :class="tabBtnClass('tags', leftTab)"
+                @click="leftTab = 'tags'"
+              >标签</button>
+            </div>
+            <ProjectProgress v-if="leftTab === 'projects'" @select="managingProject = $event" />
+            <TagList v-else @select="managingTag = $event" />
+          </div>
         </div>
       </div>
 
-      <!-- ── 右侧面板 ── -->
+      <!-- RIGHT PANEL -->
       <div
         class="flex-1 flex flex-col rounded-3xl shadow-2xl overflow-hidden"
-        :class="isDark ? 'glass-dark' : 'glass-light'"
+        :class="panelCls()"
       >
         <!-- Header -->
         <div
           class="flex items-center justify-between px-6 pt-5 pb-4 shrink-0"
-          :style="{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}` }"
+          :style="{ borderBottom: `1px solid ${divider()}` }"
         >
           <div>
-            <h1 class="text-xl font-black" :style="{ color: 'var(--txt-primary)' }">{{ title }}</h1>
-            <p class="text-xs mt-0.5" :style="{ color: 'var(--txt-muted)' }">
-              {{ subtitle }}
-            </p>
+            <h1
+              class="text-xl font-black"
+              :style="{ color: isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)' }"
+            >{{ title }}</h1>
+            <p
+              class="text-xs mt-0.5"
+              :style="{ color: isDark ? 'rgba(255,255,255,0.42)' : 'rgba(15,10,40,0.46)' }"
+            >{{ subtitle }}</p>
           </div>
-
-          <!-- 视图切换 -->
           <div class="flex gap-1">
             <button
-              v-for="view in [
-                { key: 'next', label: '事项' },
-                { key: 'kanban', label: '看板' },
-                { key: 'calendar', label: '日历' },
-              ]"
-              :key="view.key"
-              class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
-              :class="currentView === view.key
-                ? (isDark ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
-                : (isDark ? 'text-white/40 hover:bg-white/10 hover:text-white' : 'text-gray-500 hover:bg-gray-100')"
-              @click="currentView = view.key as ViewType"
-            >{{ view.label }}</button>
+              v-for="tab in ([
+                { key: 'tasks', label: '事项', icon: ListTodo },
+                { key: 'kanban', label: '看板', icon: LayoutGrid },
+                { key: 'calendar', label: '日历', icon: CalendarDays },
+              ] as const)"
+              :key="tab.key"
+              class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer"
+              :class="tabBtnClass(tab.key, currentView)"
+              @click="currentView = tab.key"
+            ><component :is="tab.icon" :size="11" class="inline mr-1" />{{ tab.label }}</button>
           </div>
         </div>
 
-        <!-- 内容区 -->
-        <div
-          class="flex-1 px-6 pt-4 pb-6 min-h-0"
-          :class="(currentView === 'kanban' || currentView === 'calendar') ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'"
-        >
-          <!-- 列表视图 -->
-          <template v-if="currentView === 'next'">
-            <!-- 添加任务 -->
-            <div class="mb-4">
-              <AddTask @add="handleAddTask" />
-            </div>
-
-            <!-- 空状态 -->
-            <div
-              v-if="store.pendingTasks.length === 0"
-              class="flex flex-col items-center justify-center py-20 text-center"
+        <!-- Content -->
+        <div class="flex-1 overflow-auto px-6 pt-4 pb-6">
+          <AnimatePresence mode="wait">
+            <!-- Tasks view -->
+            <Motion
+              v-if="currentView === 'tasks'"
+              key="tasks"
+              :initial="{ opacity: 0, y: 4 }"
+              :animate="{ opacity: 1, y: 0 }"
+              :exit="{ opacity: 0, y: -4 }"
+              :transition="{ duration: 0.16 }"
+              class="flex flex-col"
+              tag="div"
             >
-              <div
-                class="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                :style="{
-                  background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(99,102,241,0.12)',
-                  backdropFilter: 'blur(12px)',
-                  border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(99,102,241,0.18)',
-                }"
-              >
-                <Sparkles
-                  :size="26"
-                  :style="{ color: isDark ? 'rgba(255,255,255,0.45)' : '#818CF8' }"
-                />
+              <div class="mb-4">
+                <AddTaskBtn :is-dark="isDark" @open="showAddTask = true" />
               </div>
-              <p class="text-base font-black mb-1" :style="{ color: 'var(--txt-primary)' }">
-                暂无待办任务
-              </p>
-              <p class="text-sm" :style="{ color: 'var(--txt-muted)' }">
-                添加一个吧
-              </p>
-            </div>
 
-            <!-- 任务卡片列表 -->
-            <template v-else>
+              <AnimatePresence>
+                <Motion
+                  v-if="store.pendingTasks.length === 0"
+                  :initial="{ opacity: 0 }"
+                  :animate="{ opacity: 1 }"
+                  class="flex flex-col items-center justify-center py-20 text-center"
+                  tag="div"
+                >
+                  <div
+                    class="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                    :style="{
+                      background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(99,102,241,0.12)',
+                      border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(99,102,241,0.18)',
+                    }"
+                  >
+                    <Sparkles
+                      :size="26"
+                      :style="{ color: isDark ? 'rgba(255,255,255,0.45)' : '#818CF8' }"
+                    />
+                  </div>
+                  <p
+                    class="text-base font-black mb-1"
+                    :style="{ color: isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)' }"
+                  >今日任务全部完成</p>
+                  <p
+                    class="text-sm"
+                    :style="{ color: isDark ? 'rgba(255,255,255,0.42)' : 'rgba(15,10,40,0.46)' }"
+                  >再添加一些，继续保持状态</p>
+                </Motion>
+              </AnimatePresence>
+
               <TaskCard
                 v-for="(task, i) in store.pendingTasks"
                 :key="task.uuid"
                 :task="task"
                 :index="i"
+                :selected="selectedIndex === i"
                 :all-projects="allProjects"
                 :all-tags="allTags"
                 @complete="handleCompleteTask"
-                @edit="handleEditFromCard"
+                @edit="editingTask = $event"
                 @delete="handleDeleteTask"
               />
 
-              <!-- 已完成折叠区域 -->
-              <div
-                class="mt-4 rounded-2xl overflow-hidden"
-                :style="{
-                  background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}`,
-                }"
-              >
-                <!-- 折叠头 -->
-                <button
-                  class="w-full flex items-center justify-between px-4 py-3 transition-colors"
-                  :class="isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'"
-                  @click="toggleCompleted"
-                >
-                  <span class="text-sm font-semibold" :style="{ color: 'var(--txt-muted)' }">
-                    已完成 ({{ totalDone }})
-                  </span>
-                  <ChevronDown
-                    :size="14"
-                    class="transition-transform"
-                    :class="{ 'rotate-180': showCompleted }"
-                    :style="{ color: 'var(--txt-muted)' }"
-                  />
-                </button>
+              <CompletedSection
+                :tasks="completedTasks"
+                :is-dark="isDark"
+                @uncomplete="handleUncompleteTask"
+              />
+            </Motion>
 
-                <!-- 展开内容 -->
-                <div v-if="showCompleted" class="px-4 pb-4 space-y-2">
-                  <div
-                    v-for="task in store.completedTasks"
-                    :key="task.uuid"
-                    class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors"
-                    :style="{
-                      background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.50)',
-                    }"
-                  >
-                    <!-- 完成图标 -->
-                    <div
-                      class="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                      :style="{ background: isDark ? 'rgba(34,197,94,0.20)' : 'rgba(34,197,94,0.15)' }"
-                    >
-                      <Check :size="12" :stroke-width="3" :style="{ color: isDark ? '#86efac' : '#22c55e' }" />
-                    </div>
+            <!-- Kanban view -->
+            <Motion
+              v-else-if="currentView === 'kanban'"
+              key="kanban"
+              :initial="{ opacity: 0, y: 4 }"
+              :animate="{ opacity: 1, y: 0 }"
+              :exit="{ opacity: 0, y: -4 }"
+              :transition="{ duration: 0.16 }"
+              class="h-full"
+              tag="div"
+            >
+              <KanbanView
+                :tasks="store.tasks"
+                :is-dark="isDark"
+                @edit="editingTask = $event"
+                @complete="handleCompleteTask"
+                @update="handleUpdateTask"
+                @start="handleStartTask"
+                @stop="handleStopTask"
+              />
+            </Motion>
 
-                    <!-- 任务信息 -->
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm line-through opacity-60 truncate" :style="{ color: 'var(--txt-primary)' }">
-                        {{ task.description }}
-                      </p>
-                      <p v-if="task.end" class="text-[10px] mt-0.5" :style="{ color: 'var(--txt-subtle)' }">
-                        {{ parseTaskDate(task.end).toLocaleDateString('zh-CN') }}
-                      </p>
-                    </div>
-
-                    <!-- 取消完成 -->
-                    <button
-                      class="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors"
-                      :class="isDark
-                        ? 'text-white/40 hover:text-white hover:bg-white/10'
-                        : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'"
-                      @click="handleUncompleteTask(task.uuid)"
-                    >取消完成</button>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </template>
-
-          <!-- 看板视图 -->
-          <KanbanView
-            v-else-if="currentView === 'kanban'"
-            @edit="handleEditFromView"
-          />
-
-          <!-- 日历视图 -->
-          <CalendarView
-            v-else-if="currentView === 'calendar'"
-            @edit="handleEditFromView"
-          />
+            <!-- Calendar view -->
+            <Motion
+              v-else-if="currentView === 'calendar'"
+              key="calendar"
+              :initial="{ opacity: 0, y: 4 }"
+              :animate="{ opacity: 1, y: 0 }"
+              :exit="{ opacity: 0, y: -4 }"
+              :transition="{ duration: 0.16 }"
+              class="h-full"
+              tag="div"
+            >
+              <CalendarView
+                :tasks="store.tasks"
+                :is-dark="isDark"
+                @edit="editingTask = $event"
+              />
+            </Motion>
+          </AnimatePresence>
         </div>
       </div>
     </div>
 
-    <!-- 完成弹窗 -->
-    <CompletionModal
-      v-if="doneInfo"
-      :description="doneInfo.description"
-      :today-count="doneInfo.todayCount"
-      :total-done="doneInfo.totalDone"
-      @close="doneInfo = null"
-    />
+    <!-- Modals -->
+    <AnimatePresence>
+      <SettingsPanel
+        v-if="showSettings"
+        key="settings"
+        :is-dark="isDark"
+        :pos="settingsPos"
+        :sound-enabled="soundEnabled"
+        :achievement-enabled="achievementEnabled"
+        @update:sound-enabled="soundEnabled = $event"
+        @update:achievement-enabled="achievementEnabled = $event; try { localStorage.setItem('twm-achievement', String($event)) } catch {}"
+        @close="showSettings = false"
+      />
+      <AddTaskModal
+        v-if="showAddTask"
+        key="add"
+        :is-dark="isDark"
+        @add="handleAddTask"
+        @close="showAddTask = false"
+      />
+      <CompletionModal
+        v-if="doneInfo"
+        key="completion"
+        :description="doneInfo.description"
+        :is-dark="isDark"
+        @close="doneInfo = null"
+      />
+      <TaskEditModal
+        v-if="editingTask"
+        key="edit"
+        :task="editingTask"
+        :is-dark="isDark"
+        :all-projects="allProjects"
+        :all-tags="allTags"
+        @close="editingTask = null"
+        @save="handleSaveEdit"
+        @delete="handleDeleteTask"
+        @add-project="handleAddProject"
+        @delete-project="handleDeleteProject"
+        @add-tag="() => {}"
+        @delete-tag="handleDeleteTag"
+      />
+      <ProjectManageModal
+        v-if="managingProject"
+        key="proj"
+        :project="managingProject"
+        :tasks="store.tasks"
+        :is-dark="isDark"
+        :all-projects="allProjects"
+        @close="managingProject = null"
+        @rename="handleRenameProject"
+        @delete="handleDeleteProject"
+        @add-project="handleAddProject"
+      />
+      <TagManageModal
+        v-if="managingTag"
+        key="tag"
+        :tag="managingTag"
+        :tasks="store.tasks"
+        :is-dark="isDark"
+        @close="managingTag = null"
+        @rename="handleRenameTag"
+        @delete="handleDeleteTag"
+      />
+      <HelpModal
+        v-if="showHelp"
+        key="help"
+        :is-dark="isDark"
+        @close="showHelp = false"
+      />
+      <DayCompletedModal
+        v-if="dayModalDate"
+        key="day"
+        :date="dayModalDate"
+        :tasks="dayModalTasks"
+        :is-dark="isDark"
+        @close="dayModalDate = null"
+      />
+    </AnimatePresence>
 
-    <!-- 编辑弹窗 -->
-    <TaskEditModal
-      :task="editingTask"
-      :all-projects="allProjects"
-      :all-tags="allTags"
-      @close="editingTask = null"
-      @save="handleSaveEdit"
-      @delete="handleDeleteTask"
-      @add-project="handleAddProject"
-      @delete-project="handleDeleteProject"
-      @add-tag="handleAddTag"
-      @delete-tag="handleDeleteTag"
-    />
-
-    <!-- 帮助弹窗 -->
-    <HelpModal
-      :show="showHelp"
-      @close="showHelp = false"
-    />
-
-    <!-- 项目管理弹窗 -->
-    <ProjectManageModal
-      :show="!!managingProject"
-      :project-name="managingProject || ''"
-      @close="managingProject = null"
-      @rename="handleRenameProject"
-      @delete="handleDeleteProject"
-      @create="handleCreateProject"
-    />
-
-    <!-- 标签管理弹窗 -->
-    <TagManageModal
-      :show="!!managingTag"
-      :tag-name="managingTag || ''"
-      @close="managingTag = null"
-      @rename="handleRenameTag"
-      @delete="handleDeleteTag"
-    />
-
-    <!-- 错误提示 -->
+    <!-- Error toast -->
     <div
       v-if="store.error"
-      class="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50"
+      class="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-[13px] font-medium shadow-2xl"
+      :style="{
+        background: isDark ? 'rgba(14,7,34,0.88)' : 'rgba(255,255,255,0.88)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        color: isDark ? '#fff' : '#1a1a2e',
+        border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.07)',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.28)',
+      }"
     >
       {{ store.error }}
-      <button class="ml-2" @click="store.error = null">×</button>
+      <button class="ml-3 cursor-pointer opacity-60 hover:opacity-100 transition-opacity" @click="store.error = null">×</button>
     </div>
   </div>
 </template>

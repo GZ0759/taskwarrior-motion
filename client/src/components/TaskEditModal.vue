@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { X, Calendar, FolderOpen, Tag } from '@lucide/vue'
-import { useTheme } from '@/composables/useTheme'
 import { taskDateToISO } from '@/utils/date'
 import type { Task, UpdateTaskRequest } from '@/types/task'
-import ProjectPicker from './ProjectPicker.vue'
-import TagPicker from './TagPicker.vue'
+import ModalShell from './ModalShell.vue'
+import DatePickerInput from './DatePickerInput.vue'
+import SimpleProjectSelect from './SimpleProjectSelect.vue'
+import SimpleTagSelect from './SimpleTagSelect.vue'
 
 const props = defineProps<{
   task: Task | null
+  isDark: boolean
   allProjects: string[]
   allTags: string[]
 }>()
@@ -23,31 +24,26 @@ const emit = defineEmits<{
   (e: 'deleteTag', v: string): void
 }>()
 
-const { isDark } = useTheme()
-
-// 编辑状态
-const editProject = ref('')
-const editTags = ref<string[]>([])
+const description = ref('')
 const editPriority = ref<'H' | 'M' | 'L'>('M')
 const editDue = ref('')
 const editWait = ref('')
+const editProject = ref('')
+const editTags = ref<string[]>([])
 
-// 监听 task 变化，重置编辑状态
 watch(() => props.task, (task) => {
   if (task) {
+    description.value = task.description
     editProject.value = task.project ?? ''
     editTags.value = task.tags ?? []
     editPriority.value = task.priority ?? 'M'
-    // 转换 taskwarrior 日期格式为 YYYY-MM-DD（date input 要求）
     editDue.value = task.due ? taskDateToISO(task.due) : ''
     editWait.value = task.wait ? taskDateToISO(task.wait) : ''
   }
 }, { immediate: true })
 
-// 优先级标签
 const priorityLabels: Record<string, string> = { H: '紧急', M: '普通', L: '低优' }
 
-// 将 YYYY-MM-DD 转为 taskwarrior 格式
 function toTaskwarriorDate(dateStr: string): string | undefined {
   if (!dateStr) return undefined
   return dateStr.replace(/-/g, '') + 'T000000Z'
@@ -56,11 +52,13 @@ function toTaskwarriorDate(dateStr: string): string | undefined {
 function save() {
   if (!props.task) return
   emit('save', props.task.uuid, {
+    description: description.value.trim() || undefined,
     project: editProject.value || undefined,
     tags: editTags.value.length > 0 ? editTags.value : undefined,
     priority: editPriority.value,
     due: toTaskwarriorDate(editDue.value),
     wait: toTaskwarriorDate(editWait.value),
+    status: editWait.value ? 'on-hold' : (props.task.status === 'on-hold' && !editWait.value ? 'pending' : undefined),
   })
   emit('close')
 }
@@ -70,162 +68,82 @@ function handleDelete() {
   emit('delete', props.task.uuid)
   emit('close')
 }
+
+const tm = () => props.isDark ? 'rgba(255,255,255,0.40)' : 'rgba(15,10,40,0.42)'
+const fieldBg = () => props.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)'
 </script>
 
 <template>
-  <div v-if="task" class="fixed inset-0 z-50 flex items-center justify-center p-6">
-    <!-- 遮罩 -->
-    <div
-      class="absolute inset-0 glass-overlay"
-      @click="emit('close')"
+  <ModalShell
+    v-if="task"
+    title="编辑任务"
+    :is-dark="isDark"
+    @close="emit('close')"
+  >
+    <input
+      v-model="description"
+      class="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-400/30"
+      :style="{
+        background: fieldBg(),
+        color: isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)',
+        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+      }"
     />
 
-    <!-- 弹窗 -->
-    <div
-      class="relative z-10 w-full max-w-md rounded-3xl overflow-hidden"
-      :style="{
-        background: isDark ? 'rgba(20,8,50,0.95)' : 'rgba(255,255,255,0.95)',
-        border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.10)'}`,
-        boxShadow: '0 32px 90px rgba(0,0,0,0.30)',
-      }"
-    >
-      <!-- 头部 -->
-      <div
-        class="flex items-center justify-between px-6 py-4"
-        :style="{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'}` }"
-      >
-        <h3 class="text-base font-black" :style="{ color: 'var(--txt-primary)' }">编辑任务</h3>
+    <div>
+      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: tm() }">优先级</label>
+      <div class="flex gap-2">
         <button
-          class="p-1.5 rounded-xl transition-colors"
-          :style="{ color: 'var(--txt-muted)' }"
-          @click="emit('close')"
-        >
-          <X :size="16" />
-        </button>
-      </div>
-
-      <!-- 内容 -->
-      <div class="px-6 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
-        <!-- 任务描述 -->
-        <div
-          class="rounded-2xl px-4 py-3"
-          :style="{
-            background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
+          v-for="p in (['H', 'M', 'L'] as const)"
+          :key="p"
+          class="flex-1 py-2.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer"
+          :class="{
+            'bg-red-500 text-white': editPriority === p && p === 'H',
+            'bg-amber-400 text-white': editPriority === p && p === 'M',
+            'bg-indigo-500 text-white': editPriority === p && p === 'L',
+            'bg-white/[0.07] text-white/55 hover:bg-white/[0.12]': editPriority !== p && isDark,
+            'bg-black/[0.04] text-gray-500 hover:bg-black/[0.07]': editPriority !== p && !isDark,
           }"
-        >
-          <p class="text-sm font-semibold" :style="{ color: 'var(--txt-primary)' }">
-            {{ task.description }}
-          </p>
-        </div>
-
-        <!-- 优先级 -->
-        <div>
-          <label class="text-[9px] font-black uppercase tracking-widest mb-1.5 block" :style="{ color: 'var(--txt-muted)' }">
-            优先级
-          </label>
-          <div class="flex gap-2">
-            <button
-              v-for="p in ['H', 'M', 'L']"
-              :key="p"
-              class="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
-              :class="editPriority === p
-                ? (isDark ? 'bg-white text-gray-800' : 'bg-indigo-500 text-white')
-                : (isDark ? 'bg-white/10 text-white/70 hover:bg-white/20' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')"
-              @click="editPriority = p as 'H' | 'M' | 'L'"
-            >{{ priorityLabels[p] }}</button>
-          </div>
-        </div>
-
-        <!-- 截止日期 -->
-        <div>
-          <label class="text-[9px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1" :style="{ color: 'var(--txt-muted)' }">
-            <Calendar :size="8" /> 截止日期
-          </label>
-          <input
-            v-model="editDue"
-            type="date"
-            class="w-full rounded-xl px-3 py-2 text-xs font-medium outline-none"
-            :style="{
-              background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.04)',
-              color: 'var(--txt-primary)',
-            }"
-          />
-        </div>
-
-        <!-- 等待日期 -->
-        <div>
-          <label class="text-[9px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1" :style="{ color: 'var(--txt-muted)' }">
-            <Calendar :size="8" /> 暂停到
-          </label>
-          <input
-            v-model="editWait"
-            type="date"
-            class="w-full rounded-xl px-3 py-2 text-xs font-medium outline-none"
-            :style="{
-              background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.04)',
-              color: 'var(--txt-primary)',
-            }"
-          />
-        </div>
-
-        <!-- 项目 -->
-        <div>
-          <label class="text-[9px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1" :style="{ color: 'var(--txt-muted)' }">
-            <FolderOpen :size="8" /> 项目
-          </label>
-          <ProjectPicker
-            :value="editProject"
-            :options="allProjects"
-            :is-dark="isDark"
-            @update:value="editProject = $event"
-            @add="emit('addProject', $event)"
-            @delete="emit('deleteProject', $event)"
-          />
-        </div>
-
-        <!-- 标签 -->
-        <div>
-          <label class="text-[9px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1" :style="{ color: 'var(--txt-muted)' }">
-            <Tag :size="8" /> 标签
-          </label>
-          <TagPicker
-            :selected="editTags"
-            :options="allTags"
-            :is-dark="isDark"
-            @update:selected="editTags = $event"
-            @add="emit('addTag', $event)"
-            @delete="emit('deleteTag', $event)"
-          />
-        </div>
-      </div>
-
-      <!-- 底部按钮 -->
-      <div
-        class="flex gap-2 px-6 py-4"
-        :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'}` }"
-      >
-        <button
-          class="flex-1 py-2.5 rounded-xl text-xs font-semibold transition-colors"
-          :class="isDark
-            ? 'text-white/60 hover:text-white hover:bg-white/10'
-            : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'"
-          @click="emit('close')"
-        >取消</button>
-        <button
-          class="flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors"
-          :class="isDark
-            ? 'bg-white text-gray-800 hover:bg-white/90'
-            : 'bg-indigo-500 text-white hover:bg-indigo-600'"
-          @click="save"
-        >保存</button>
-        <button
-          class="px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors"
-          :class="isDark
-            ? 'text-white/60 hover:text-white hover:bg-red-500/30'
-            : 'text-gray-500 hover:text-red-600 hover:bg-red-50'"
-          @click="handleDelete"
-        >删除</button>
+          @click="editPriority = p"
+        >{{ priorityLabels[p] }}</button>
       </div>
     </div>
-  </div>
+
+    <div>
+      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: tm() }">截止日期</label>
+      <DatePickerInput v-model="editDue" placeholder="选择截止日期" :is-dark="isDark" />
+    </div>
+
+    <div>
+      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: tm() }">暂停到</label>
+      <DatePickerInput v-model="editWait" placeholder="设置后任务进入暂停列" :is-dark="isDark" />
+      <p class="text-[9px] mt-1.5 ml-0.5" :style="{ color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(15,10,40,0.28)' }">设置日期后，任务将进入「暂停」看板列</p>
+    </div>
+
+    <div>
+      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: tm() }">项目</label>
+      <SimpleProjectSelect v-model="editProject" :options="allProjects" :is-dark="isDark" />
+    </div>
+
+    <div>
+      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: tm() }">标签</label>
+      <SimpleTagSelect v-model:selected="editTags" :options="allTags" :is-dark="isDark" />
+    </div>
+
+    <div class="flex gap-2 pt-2" :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}` }">
+      <button
+        class="flex-1 py-2.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer hover:opacity-80"
+        :style="{ color: tm(), background: fieldBg() }"
+        @click="emit('close')"
+      >取消</button>
+      <button
+        class="flex-1 py-2.5 rounded-xl bg-indigo-500 text-white text-xs font-black hover:bg-indigo-600 transition-colors cursor-pointer"
+        @click="save"
+      >保存</button>
+      <button
+        class="px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors text-red-400 hover:bg-red-500/[0.12] cursor-pointer"
+        @click="handleDelete"
+      >删除</button>
+    </div>
+  </ModalShell>
 </template>

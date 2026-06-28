@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Tag } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 
@@ -27,19 +28,16 @@ const tagStats = computed(() => {
 
 <template>
   <div>
-    <div
-      class="text-[10px] font-black uppercase tracking-widest mb-3.5"
-      :style="{ color: 'var(--txt-muted)' }"
-    >标签</div>
-    <div class="space-y-2">
+    <div class="space-y-1">
       <button
         v-for="tag in tagStats"
         :key="tag.name"
-        class="w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors cursor-pointer"
-        :class="isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'"
+        class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-colors cursor-pointer"
+        :class="isDark ? 'hover:bg-white/6' : 'hover:bg-black/3'"
         @click="emit('select', tag.name)"
       >
-        <span class="text-[11px] font-semibold" :style="{ color: 'var(--txt-primary)' }">
+        <span class="flex items-center gap-2 text-[12px] font-medium" :style="{ color: 'var(--txt-primary)' }">
+          <Tag :size="11" :style="{ color: 'var(--txt-muted)' }" />
           {{ tag.name }}
         </span>
         <span

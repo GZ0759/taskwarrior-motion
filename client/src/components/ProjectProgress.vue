@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Motion } from 'motion-v'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import { getCardStyle } from '@/utils/card-styles'
@@ -58,15 +59,11 @@ const projects = computed<ProjectStat[]>(() => {
 
 <template>
   <div>
-    <div
-      class="text-[10px] font-black uppercase tracking-widest mb-3.5"
-      :style="{ color: 'var(--txt-muted)' }"
-    >项目进度</div>
     <div class="space-y-3">
       <div
         v-for="p in projects"
         :key="p.name"
-        class="cursor-pointer rounded-xl px-2 py-1.5 -mx-2 transition-colors"
+        class="cursor-pointer rounded-xl px-2.5 py-2 transition-colors"
         :class="isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'"
         @click="emit('select', p.name)"
       >
@@ -79,15 +76,19 @@ const projects = computed<ProjectStat[]>(() => {
             {{ p.done }}/{{ p.total }}
           </span>
         </div>
-        <div
-          class="h-1.5 rounded-full overflow-hidden"
-          :style="{ background: 'var(--progress-bg)' }"
-        >
           <div
-            class="h-full rounded-full transition-all duration-900 ease-out"
-            :style="{ width: `${p.pct}%`, background: p.gradient }"
-          />
-        </div>
+            class="h-1.5 rounded-full overflow-hidden"
+            :style="{ background: 'var(--progress-bg)' }"
+          >
+            <Motion
+              class="h-full rounded-full"
+              :initial="{ width: '0%' }"
+              :animate="{ width: `${p.pct}%` }"
+              :transition="{ duration: 0.9, ease: 'easeOut' }"
+              :style="{ background: p.gradient }"
+              tag="div"
+            />
+          </div>
       </div>
     </div>
   </div>

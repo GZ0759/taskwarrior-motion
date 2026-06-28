@@ -1,18 +1,15 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useTaskStore } from '@/stores/task'
 import { useTheme } from '@/composables/useTheme'
 import { getTodayStr, taskDateToISO } from '@/utils/date'
-import type { Task } from '@/types/task'
-import DayCompletedModal from './DayCompletedModal.vue'
 
 const store = useTaskStore()
 const { isDark } = useTheme()
 
-// 弹窗状态
-const showModal = ref(false)
-const selectedDate = ref('')
-const selectedTasks = ref<Task[]>([])
+const emit = defineEmits<{
+  (e: 'dayClick', date: string): void
+}>()
 
 // 日期工具
 function fmt(d: Date): string {
@@ -96,10 +93,7 @@ const weekdays = ['日', '一', '二', '三', '四', '五', '六']
 
 // 点击格子
 async function handleCellClick(cell: { date: string; count: number }) {
-  if (cell.count === 0) return
-  selectedDate.value = cell.date
-  selectedTasks.value = await store.fetchCompletedOnDate(cell.date)
-  showModal.value = true
+  emit('dayClick', cell.date)
 }
 </script>
 
@@ -147,10 +141,11 @@ async function handleCellClick(cell: { date: string; count: number }) {
       <div
         v-for="cell in cells"
         :key="cell.date"
-        class="aspect-square rounded-xl flex items-center justify-center relative select-none transition-transform hover:scale-110"
-        :class="cell.count > 0 ? 'cursor-pointer' : 'cursor-default'"
-        :style="{ backgroundColor: cellBg(cell.count) }"
-        :title="`${cell.date}：完成 ${cell.count} 项`"
+        class="aspect-square rounded-xl flex items-center justify-center relative select-none cursor-pointer"
+        :style="{ backgroundColor: cellBg(cell.count), transition: 'transform 0.15s' }"
+        @mouseenter="($event.currentTarget as HTMLElement).style.transform = 'scale(1.12)'"
+        @mouseleave="($event.currentTarget as HTMLElement).style.transform = 'scale(1)'"
+        :title="cell.count > 0 ? `${cell.date}：完成 ${cell.count} 项` : `${cell.date}：无完成任务`"
         @click="handleCellClick(cell)"
       >
         <span
@@ -180,13 +175,5 @@ async function handleCellClick(cell: { date: string; count: number }) {
       />
       <span class="text-[9px]" :style="{ color: 'var(--txt-subtle)' }">多</span>
     </div>
-
-    <!-- 当日完成任务弹窗 -->
-    <DayCompletedModal
-      :show="showModal"
-      :date="selectedDate"
-      :tasks="selectedTasks"
-      @close="showModal = false"
-    />
   </div>
 </template>
