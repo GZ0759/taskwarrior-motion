@@ -20,6 +20,17 @@ Module 2 和 Module 3 可并行
 
 ---
 
+## 执行者规则（AI 必须遵守）
+
+1. 从 Module 1 开始，按 1.1 → 1.2 → 1.3 → 1.4 → 1.5 → 1.6 → 1.7 → 1.8 顺序执行
+2. Module 2 和 Module 3 的前置条件是 Module 1 全部完成，之后可并行执行
+3. 每个子任务完成后必须运行 `npm run typecheck`，确认通过再继续
+4. 遇到任何问题按计划中的设计方案自行决策，**不得暂停询问**
+5. 不得停下来等待确认，持续执行直到三个 Module 全部完成
+6. 全部完成后输出执行结果摘要：改了哪些文件、typecheck 是否通过、遗留问题
+
+---
+
 ## Module 1：创建/编辑体系重构
 
 ### 概述
@@ -64,6 +75,9 @@ Module 2 和 Module 3 可并行
 ```
 
 **验收**：
+
+▶ 执行完毕后运行 `npm run typecheck`，确认通过后自动进入下一步，无需询问。
+
 - `npm run typecheck` 通过
 - ModalShell 渲染时有渐变流动边框
 - `editableTitle=true` 时点击标题可重命名
@@ -110,6 +124,9 @@ defineEmits<{
 6. 空输入直接回车 → 关闭弹窗，不创建
 
 **验收**：
+
+▶ 执行完毕后运行 `npm run typecheck`，确认通过后自动进入下一步，无需询问。
+
 1. type=task 时输入描述回车 → emit `create(desc)`
 2. type=project 时输入项目名回车 → emit `create(name)`
 3. type=tag 时输入标签名回车 → emit `create(name)`
@@ -149,6 +166,9 @@ defineEmits<{
 3. 其他字段（优先级/日期/项目/标签）布局不变
 
 **验收**：
+
+▶ 执行完毕后运行 `npm run typecheck`，确认通过后自动进入下一步，无需询问。
+
 1. 描述输入框 22px 大号样式
 2. 底部只有 [删除] [保存] 两个按钮
 3. 删除确认由弹窗直接删除（不再需要确认弹窗）
@@ -192,6 +212,9 @@ defineEmits<{
    - 删除逻辑确认后 emit `delete(name)` + `close`
 
 **验收**：
+
+▶ 执行完毕后运行 `npm run typecheck`，确认通过后自动进入下一步，无需询问。
+
 1. 点击标题 → 变为输入框 → 回车重命名
 2. 进度条、待办列表、已完成列表保留
 3. 底部只有 [删除] [确定] 两个按钮
@@ -208,6 +231,9 @@ defineEmits<{
 **改动：** 同 1.5，但不涉及进度条和新建输入（标签原本就没有）。
 
 **验收**：
+
+▶ 执行完毕后运行 `npm run typecheck`，确认通过后自动进入下一步，无需询问。
+
 1. 点击标题 → 变为输入框 → 回车重命名
 2. 底部只有 [删除] [确定] 两个按钮
 3. 待办列表、已完成列表保留
@@ -262,6 +288,9 @@ const allTags = computed(() => {
 
 **验收**：`npm run typecheck` 通过，新增 `localProjects`/`localTags` 不影响现有代码。
 
+▶ 执行完毕后运行 `npm run typecheck`，确认通过后自动进入下一步，无需询问。
+
+
 ---
 
 ### 1.8 App.vue — 集成 CreateModal + 左侧 [+] 按钮
@@ -305,6 +334,9 @@ function handleCreate(value: string) {
 ```
 
 **验收**：
+
+▶ 执行完毕后运行 `npm run typecheck`，确认通过后自动进入下一步，无需询问。
+
 1. 左侧 tab 旁显示 [+] 按钮
 2. 点击 [+] → 弹出对应 type 的 CreateModal
 3. 创建后数据出现在对应列表
@@ -355,6 +387,9 @@ function handleCreate(value: string) {
 10. **选中状态高亮**：保留 `selected` prop 的白色边框效果
 
 **验收**：
+
+▶ 执行完毕后运行 `npm run typecheck`，确认通过后自动进入下一步，无需询问。
+
 1. 一行布局显示所有信息
 2. 标签最多显示 2 个，超出显示 "+N"
 3. 点击卡片空白区域 → 打开 TaskEditModal
@@ -404,6 +439,9 @@ ModalShell(title=任务描述)
 6. 点击 X 关闭
 
 **验收**：
+
+▶ 执行完毕后运行 `npm run typecheck`，确认通过后自动进入下一步，无需询问。
+
 1. 点击 TaskCard 的计时按钮 → 弹出 TimerModal
 2. 显示大号计时器
 3. 点击开始 → 计时开始 → 按钮变为暂停
@@ -426,6 +464,9 @@ ModalShell(title=任务描述)
 4. 计时相关事件处理
 
 **验收**：点击计时按钮 → 弹出 TimerModal，功能正常。
+
+▶ 执行完毕后运行 `npm run typecheck`，确认通过后自动进入下一步，无需询问。
+
 
 ---
 
@@ -504,6 +545,9 @@ Popover 样式：玻璃拟态（blur 32px, saturate 200%），宽 160px。
 保留当前：列名 + 计数 badge。
 
 **验收**：
+
+▶ 执行完毕后运行 `npm run typecheck`，确认通过后自动进入下一步，无需询问。
+
 1. 5列自适应撑满右侧面板宽度
 2. 卡片使用项目渐变色，文字白色
 3. 卡片上只有「完成」按钮 + 「···」更多按钮
