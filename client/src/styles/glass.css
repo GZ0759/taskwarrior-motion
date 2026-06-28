@@ -56,8 +56,9 @@
   backdrop-filter: blur(8px);
 }
 
-/* 遮罩层 */
+/* 遮罩层 — 弹窗背景蒙版（轻量，与设计稿 GlassOverlay 一致） */
 .glass-overlay {
-  background: rgba(0,0,0,0.70);
-  backdrop-filter: blur(14px);
+  background: rgba(0,0,0,0.03);
+  backdrop-filter: blur(4px) saturate(120%);
+  -webkit-backdrop-filter: blur(4px) saturate(120%);
 }
