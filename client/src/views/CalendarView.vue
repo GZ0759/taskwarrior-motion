@@ -144,12 +144,9 @@ const tabBtnStyle = (v: string) =>
     </div>
 
     <div v-if="calView === 'month'" class="flex-1 overflow-auto">
+      <div class="rounded-3xl overflow-hidden border border-[var(--glass-panel-border)]">
       <div
         class="grid grid-cols-7 sticky top-0 z-10"
-        :style="{
-          background: 'var(--glass-panel-bg)',
-          backdropFilter: 'blur(12px)',
-        }"
       >
         <div
           v-for="d in dayNames"
@@ -170,7 +167,7 @@ const tabBtnStyle = (v: string) =>
             minHeight: '90px',
             borderColor: 'var(--border-default)',
             background: !cell.day
-              ? 'var(--glass-panel-bg)'
+              ? 'transparent'
               : cell.date === todayStr
                 ? 'var(--today-highlight)'
                 : undefined,
@@ -202,6 +199,7 @@ const tabBtnStyle = (v: string) =>
             >+{{ getTasksForDate(cell.date).length - 3 }} 更多</span>
           </template>
         </div>
+      </div>
       </div>
     </div>
 
