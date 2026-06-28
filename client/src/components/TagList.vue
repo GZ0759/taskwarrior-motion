@@ -2,10 +2,8 @@
 import { computed } from 'vue'
 import { Tag } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
-import { useTheme } from '@/composables/useTheme'
 
 const store = useTaskStore()
-const { isDark } = useTheme()
 
 const emit = defineEmits<{
   (e: 'select', name: string): void
@@ -33,7 +31,9 @@ const tagStats = computed(() => {
         v-for="tag in tagStats"
         :key="tag.name"
         class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-colors cursor-pointer"
-        :class="isDark ? 'hover:bg-white/6' : 'hover:bg-black/3'"
+        :style="{ '--hover-bg': 'var(--glass-panel-hover-bg)' }"
+        @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--glass-panel-hover-bg)'"
+        @mouseleave="($event.currentTarget as HTMLElement).style.background = ''"
         @click="emit('select', tag.name)"
       >
         <span class="flex items-center gap-2 text-[12px] font-medium" :style="{ color: 'var(--txt-primary)' }">
@@ -43,7 +43,7 @@ const tagStats = computed(() => {
         <span
           class="text-[10px] px-2 py-0.5 rounded-full"
           :style="{
-            background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
+            background: 'var(--glass-input-bg)',
             color: 'var(--txt-muted)',
           }"
         >{{ tag.count }}</span>

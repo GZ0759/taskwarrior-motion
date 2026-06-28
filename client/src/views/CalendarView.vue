@@ -17,13 +17,10 @@ type CalView = 'month' | 'week'
 const calView = ref<CalView>('month')
 const calDate = ref(new Date())
 
-const tp = () => props.isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)'
-const tm = () => props.isDark ? 'rgba(255,255,255,0.36)' : 'rgba(15,10,40,0.38)'
-
 const chipColors: Record<string, { background: string; color: string }> = {
-  H: { background: 'rgba(239,68,68,0.20)', color: '#fca5a5' },
-  M: { background: 'rgba(234,179,8,0.20)', color: '#fde68a' },
-  L: { background: 'rgba(99,102,241,0.20)', color: '#a5b4fc' },
+  H: { background: 'var(--priority-h-bg)', color: 'var(--priority-h-text)' },
+  M: { background: 'var(--priority-m-bg)', color: 'var(--priority-m-text)' },
+  L: { background: 'var(--priority-l-bg)', color: 'var(--priority-l-text)' },
 }
 
 function fmt(d: Date): string {
@@ -87,10 +84,10 @@ function goToToday() {
   calDate.value = new Date()
 }
 
-const tabBtnClass = (v: string) =>
+const tabBtnStyle = (v: string) =>
   calView.value === v
-    ? (props.isDark ? 'bg-white/15 text-white' : 'bg-indigo-500 text-white')
-    : (props.isDark ? 'text-white/40 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100')
+    ? { background: 'var(--accent-indigo)', color: 'var(--txt-on-color)' }
+    : { color: 'var(--txt-muted)' }
 </script>
 
 <template>
@@ -98,41 +95,47 @@ const tabBtnClass = (v: string) =>
     <div class="flex items-center gap-3 shrink-0">
       <div
         class="flex rounded-xl overflow-hidden"
-        :style="{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }"
+        :style="{ background: 'var(--glass-input-bg)' }"
       >
         <button
           class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer"
-          :class="tabBtnClass('month')"
+          :style="tabBtnStyle('month')"
           @click="calView = 'month'"
         >月</button>
         <button
           class="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer"
-          :class="tabBtnClass('week')"
+          :style="tabBtnStyle('week')"
           @click="calView = 'week'"
         >周</button>
       </div>
 
       <button
         class="p-1.5 rounded-xl cursor-pointer"
-        :class="isDark ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-gray-400 hover:text-gray-700 hover:bg-black/5'"
+        :style="{ color: 'var(--txt-muted)' }"
         @click="navigate(-1)"
+        @mouseenter="($event.target as HTMLElement).style.background = 'var(--glass-panel-hover-bg)'; ($event.target as HTMLElement).style.color = 'var(--txt-primary)'"
+        @mouseleave="($event.target as HTMLElement).style.background = ''; ($event.target as HTMLElement).style.color = 'var(--txt-muted)'"
       >
         <ChevronLeft :size="14" />
       </button>
       <button
         class="text-[11px] px-2.5 py-1 rounded-xl font-semibold cursor-pointer"
-        :class="isDark ? 'bg-white/8 text-white/70 hover:bg-white/14' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+        :style="{ background: 'var(--glass-input-bg)', color: 'var(--txt-muted)' }"
         @click="goToToday"
+        @mouseenter="($event.target as HTMLElement).style.background = 'var(--glass-panel-hover-bg)'"
+        @mouseleave="($event.target as HTMLElement).style.background = 'var(--glass-input-bg)'"
       >今天</button>
       <button
         class="p-1.5 rounded-xl cursor-pointer"
-        :class="isDark ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-gray-400 hover:text-gray-700 hover:bg-black/5'"
+        :style="{ color: 'var(--txt-muted)' }"
         @click="navigate(1)"
+        @mouseenter="($event.target as HTMLElement).style.background = 'var(--glass-panel-hover-bg)'; ($event.target as HTMLElement).style.color = 'var(--txt-primary)'"
+        @mouseleave="($event.target as HTMLElement).style.background = ''; ($event.target as HTMLElement).style.color = 'var(--txt-muted)'"
       >
         <ChevronRight :size="14" />
       </button>
 
-      <span class="text-sm font-semibold" :style="{ color: tp() }">
+      <span class="text-sm font-semibold" :style="{ color: 'var(--txt-primary)' }">
         {{ calView === 'month'
           ? calDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })
           : weekDays[0].date + ' 至 ' + weekDays[6].date
@@ -144,7 +147,7 @@ const tabBtnClass = (v: string) =>
       <div
         class="grid grid-cols-7 sticky top-0 z-10"
         :style="{
-          background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.60)',
+          background: 'var(--glass-panel-bg)',
           backdropFilter: 'blur(12px)',
         }"
       >
@@ -152,12 +155,12 @@ const tabBtnClass = (v: string) =>
           v-for="d in dayNames"
           :key="d"
           class="text-center text-[10px] font-bold py-2"
-          :style="{ color: tm() }"
+          :style="{ color: 'var(--txt-weekday)' }"
         >{{ d }}</div>
       </div>
       <div
         class="grid grid-cols-7 border-l border-t"
-        :style="{ borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }"
+        :style="{ borderColor: 'var(--border-default)' }"
       >
         <div
           v-for="(cell, i) in cells"
@@ -165,11 +168,11 @@ const tabBtnClass = (v: string) =>
           class="border-r border-b p-1.5"
           :style="{
             minHeight: '90px',
-            borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+            borderColor: 'var(--border-default)',
             background: !cell.day
-              ? (isDark ? 'rgba(255,255,255,0.02)' : undefined)
+              ? 'var(--glass-panel-bg)'
               : cell.date === todayStr
-                ? (isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.06)')
+                ? 'var(--today-highlight)'
                 : undefined,
           }"
         >
@@ -178,10 +181,10 @@ const tabBtnClass = (v: string) =>
             class="text-xs font-bold mb-1"
             :style="{
               color: cell.date === todayStr
-                ? '#818cf8'
+                ? 'var(--txt-accent)'
                 : cell.date < todayStr
-                  ? (isDark ? 'rgba(255,255,255,0.30)' : 'rgba(0,0,0,0.30)')
-                  : tp(),
+                  ? 'var(--txt-subtle)'
+                  : 'var(--txt-primary)',
             }"
           >{{ cell.day }}</div>
           <template v-if="cell.date">
@@ -195,7 +198,7 @@ const tabBtnClass = (v: string) =>
             <span
               v-if="getTasksForDate(cell.date).length > 3"
               class="text-[9px]"
-              :style="{ color: tm() }"
+              :style="{ color: 'var(--txt-muted)' }"
             >+{{ getTasksForDate(cell.date).length - 3 }} 更多</span>
           </template>
         </div>
@@ -210,14 +213,14 @@ const tabBtnClass = (v: string) =>
           class="flex flex-col rounded-xl p-2"
           :style="{
             background: wd.date === todayStr
-              ? (isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.06)')
-              : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.40)'),
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+              ? 'var(--today-highlight)'
+              : 'var(--glass-panel-bg)',
+            border: `1px solid var(--border-default)`,
           }"
         >
           <div
             class="text-xs font-bold mb-2 text-center"
-            :style="{ color: wd.date === todayStr ? '#818cf8' : tp() }"
+            :style="{ color: wd.date === todayStr ? 'var(--txt-accent)' : 'var(--txt-primary)' }"
           >
             {{ dayNames[wd.dow] }}<br />
             <span class="text-base">{{ wd.day }}</span>

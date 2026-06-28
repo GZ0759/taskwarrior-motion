@@ -2,11 +2,9 @@
 import { computed } from 'vue'
 import { Motion } from 'motion-v'
 import { useTaskStore } from '@/stores/task'
-import { useTheme } from '@/composables/useTheme'
 import { getCardStyle } from '@/utils/card-styles'
 
 const store = useTaskStore()
-const { isDark } = useTheme()
 
 const emit = defineEmits<{
   (e: 'select', name: string): void
@@ -64,13 +62,14 @@ const projects = computed<ProjectStat[]>(() => {
         v-for="p in projects"
         :key="p.name"
         class="cursor-pointer rounded-xl px-2.5 py-2 transition-colors"
-        :class="isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'"
+        @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--glass-panel-hover-bg)'"
+        @mouseleave="($event.currentTarget as HTMLElement).style.background = ''"
         @click="emit('select', p.name)"
       >
         <div class="flex justify-between mb-1.5">
           <span
             class="text-[11px] font-semibold"
-            :style="{ color: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(15,10,40,0.72)' }"
+            :style="{ color: 'var(--txt-primary)' }"
           >{{ p.name }}</span>
           <span class="text-[11px]" :style="{ color: 'var(--txt-muted)' }">
             {{ p.done }}/{{ p.total }}

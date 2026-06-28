@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import { X } from '@lucide/vue'
-import { Motion, AnimatePresence } from 'motion-v'
+import { Motion } from 'motion-v'
 
 const props = withDefaults(defineProps<{
   title: string
@@ -41,35 +41,20 @@ function cancelEdit() {
   editing.value = false
 }
 
-const cardStyle = () => {
-  if (props.isDark) {
-    return {
-      background: 'rgba(12,6,26,0.62)',
-      backdropFilter: 'blur(52px) saturate(220%)',
-      WebkitBackdropFilter: 'blur(52px) saturate(220%)',
-      boxShadow: '0 1.5px 0 rgba(255,255,255,0.12) inset, 0 50px 100px rgba(0,0,0,0.65), 0 16px 32px rgba(0,0,0,0.35)',
-    }
-  }
-  return {
-    background: 'rgba(252,250,255,0.74)',
-    backdropFilter: 'blur(52px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(52px) saturate(180%)',
-    boxShadow: '0 1.5px 0 rgba(255,255,255,0.88) inset, 0 32px 80px rgba(80,60,180,0.12), 0 8px 24px rgba(80,60,180,0.06)',
-  }
-}
-
-const tp = () => props.isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)'
-const tm = () => props.isDark ? 'rgba(255,255,255,0.42)' : 'rgba(15,10,40,0.46)'
-const divider = () => props.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,10,40,0.07)'
+const cardStyle = () => ({
+  background: 'var(--glass-modal-bg)',
+  backdropFilter: 'blur(var(--glass-modal-blur)) saturate(var(--glass-modal-saturate))',
+  WebkitBackdropFilter: 'blur(var(--glass-modal-blur)) saturate(var(--glass-modal-saturate))',
+  border: '1px solid var(--glass-modal-border)',
+  boxShadow: 'var(--shadow-modal), var(--glass-modal-inset)',
+})
 
 function handleCloseHover(e: MouseEvent, enter: boolean) {
   const el = e.currentTarget as HTMLElement
-  el.style.background = enter
-    ? (props.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)')
-    : 'transparent'
+  el.style.background = enter ? 'var(--glass-panel-hover-bg)' : 'transparent'
 }
 
-const borderGrad = 'linear-gradient(135deg,#6366F1,#8B5CF6,#EC4899,#F59E0B,#06B6D4,#6366F1)'
+const borderGrad = 'linear-gradient(135deg,var(--accent-indigo),var(--accent-indigo-light),var(--grad-border-pink),var(--grad-border-amber),var(--grad-border-cyan),var(--accent-indigo))'
 </script>
 
 <template>
@@ -96,14 +81,14 @@ const borderGrad = 'linear-gradient(135deg,#6366F1,#8B5CF6,#EC4899,#F59E0B,#06B6
       >
         <div
           class="flex items-start justify-between px-6 py-5 shrink-0"
-          :style="{ borderBottom: `1px solid ${divider()}` }"
+          :style="{ borderBottom: '1px solid var(--divider)' }"
         >
           <div>
             <h2
               v-if="!editing"
               class="text-base font-black cursor-pointer"
               :class="{ 'hover:opacity-80': editableTitle }"
-              :style="{ color: tp() }"
+              :style="{ color: 'var(--txt-primary)' }"
               @click="startEdit"
             >{{ title }}</h2>
             <input
@@ -111,16 +96,16 @@ const borderGrad = 'linear-gradient(135deg,#6366F1,#8B5CF6,#EC4899,#F59E0B,#06B6
               ref="titleInputRef"
               v-model="editValue"
               class="text-base font-black outline-none bg-transparent"
-              :style="{ color: tp(), caretColor: '#818CF8' }"
+              :style="{ color: 'var(--txt-primary)', caretColor: 'var(--caret-color)' }"
               @keydown.enter="confirmEdit"
               @keydown.escape="cancelEdit"
               @blur="confirmEdit"
             />
-            <p v-if="subtitle" class="text-xs mt-0.5" :style="{ color: tm() }">{{ subtitle }}</p>
+            <p v-if="subtitle" class="text-xs mt-0.5" :style="{ color: 'var(--txt-muted)' }">{{ subtitle }}</p>
           </div>
           <button
             class="p-1.5 rounded-xl transition-colors mt-0.5 cursor-pointer"
-            :style="{ color: tm() }"
+            :style="{ color: 'var(--txt-muted)' }"
             @mouseenter="handleCloseHover($event, true)"
             @mouseleave="handleCloseHover($event, false)"
             @click="emit('close')"

@@ -121,6 +121,9 @@ server/target/
 **/*.rs.bk
 *.pdb
 
+# Superpowers (brainstorming visual companion)
+.superpowers/
+
 # Misc
 *.bak
 *.tmp

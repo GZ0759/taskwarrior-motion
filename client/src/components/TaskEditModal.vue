@@ -68,9 +68,6 @@ function handleDelete() {
   emit('delete', props.task.uuid)
   emit('close')
 }
-
-const tm = () => props.isDark ? 'rgba(255,255,255,0.40)' : 'rgba(15,10,40,0.42)'
-const fieldBg = () => props.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)'
 </script>
 
 <template>
@@ -84,60 +81,61 @@ const fieldBg = () => props.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04
       v-model="description"
       class="w-full bg-transparent outline-none font-medium"
       :style="{
-        color: isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)',
+        color: 'var(--txt-primary)',
         fontSize: 22,
         lineHeight: 1.4,
-        caretColor: '#818CF8',
+        caretColor: 'var(--caret-color)',
       }"
     />
 
     <div>
-      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: tm() }">优先级</label>
+      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: 'var(--txt-muted)' }">优先级</label>
       <div class="flex gap-2">
         <button
           v-for="p in (['H', 'M', 'L'] as const)"
           :key="p"
           class="flex-1 py-2.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer"
           :class="{
-            'bg-red-500 text-white': editPriority === p && p === 'H',
-            'bg-amber-400 text-white': editPriority === p && p === 'M',
-            'bg-indigo-500 text-white': editPriority === p && p === 'L',
-            'bg-white/[0.07] text-white/55 hover:bg-white/[0.12]': editPriority !== p && isDark,
-            'bg-black/[0.04] text-gray-500 hover:bg-black/[0.07]': editPriority !== p && !isDark,
+            'priority-selected': editPriority === p,
+            'priority-unselected': editPriority !== p,
           }"
+          :style="editPriority === p
+            ? { background: p === 'H' ? 'var(--priority-h-solid)' : p === 'M' ? 'var(--priority-m-solid)' : 'var(--priority-l-solid)', color: 'var(--txt-on-color)' }
+            : { background: 'var(--glass-input-bg)', color: 'var(--txt-muted)' }
+          "
           @click="editPriority = p"
         >{{ priorityLabels[p] }}</button>
       </div>
     </div>
 
     <div>
-      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: tm() }">截止日期</label>
-      <DatePickerInput v-model="editDue" placeholder="选择截止日期" :is-dark="isDark" />
+      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: 'var(--txt-muted)' }">截止日期</label>
+      <DatePickerInput v-model="editDue" placeholder="选择截止日期" />
     </div>
 
     <div>
-      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: tm() }">暂停到</label>
-      <DatePickerInput v-model="editWait" placeholder="设置后任务进入暂停列" :is-dark="isDark" />
-      <p class="text-[9px] mt-1.5 ml-0.5" :style="{ color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(15,10,40,0.28)' }">设置日期后，任务将进入「暂停」看板列</p>
+      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: 'var(--txt-muted)' }">暂停到</label>
+      <DatePickerInput v-model="editWait" placeholder="设置后任务进入暂停列" />
+      <p class="text-[9px] mt-1.5 ml-0.5" :style="{ color: 'var(--txt-subtle)' }">设置日期后，任务将进入「暂停」看板列</p>
     </div>
 
     <div>
-      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: tm() }">项目</label>
-      <SimpleProjectSelect v-model="editProject" :options="allProjects" :is-dark="isDark" />
+      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: 'var(--txt-muted)' }">项目</label>
+      <SimpleProjectSelect v-model="editProject" :options="allProjects" />
     </div>
 
     <div>
-      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: tm() }">标签</label>
-      <SimpleTagSelect v-model:selected="editTags" :options="allTags" :is-dark="isDark" />
+      <label class="text-[9px] font-black uppercase tracking-widest mb-2 block" :style="{ color: 'var(--txt-muted)' }">标签</label>
+      <SimpleTagSelect v-model:selected="editTags" :options="allTags" />
     </div>
 
-    <div class="flex gap-2 pt-2" :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}` }">
+    <div class="flex gap-2 pt-2" :style="{ borderTop: '1px solid var(--divider)' }">
       <button
-        class="px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors text-red-400 hover:bg-red-500/[0.12] cursor-pointer"
+        class="btn-danger px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer"
         @click="handleDelete"
       >删除</button>
       <button
-        class="flex-1 py-2.5 rounded-xl bg-indigo-500 text-white text-xs font-black hover:bg-indigo-600 transition-colors cursor-pointer"
+        class="btn-primary flex-1 py-2.5 rounded-xl text-xs font-black cursor-pointer"
         @click="save"
       >保存</button>
     </div>

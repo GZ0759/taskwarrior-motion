@@ -6,7 +6,6 @@ import { Motion } from 'motion-v'
 
 const props = withDefaults(defineProps<{
   modelValue: string
-  isDark: boolean
   placeholder?: string
 }>(), {
   placeholder: '选择日期',
@@ -72,12 +71,6 @@ function selectToday() {
   emit('update:modelValue', todayStr.value)
   open.value = false
 }
-
-const tp = () => props.isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)'
-const tm = () => props.isDark ? 'rgba(255,255,255,0.40)' : 'rgba(15,10,40,0.42)'
-const ts = () => props.isDark ? 'rgba(255,255,255,0.24)' : 'rgba(15,10,40,0.22)'
-const fieldBg = () => props.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)'
-const panelBg = () => props.isDark ? 'rgba(12,6,26,0.62)' : 'rgba(252,250,255,0.74)'
 </script>
 
 <template>
@@ -86,23 +79,23 @@ const panelBg = () => props.isDark ? 'rgba(12,6,26,0.62)' : 'rgba(252,250,255,0.
       <button
         class="w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-medium transition-all cursor-pointer"
         :style="{
-          background: fieldBg(),
-          color: modelValue ? tp() : tm(),
-          border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+          background: 'var(--glass-input-bg)',
+          color: modelValue ? 'var(--txt-primary)' : 'var(--txt-muted)',
+          border: '1px solid var(--glass-input-border)',
         }"
       >
         <span class="flex items-center gap-2">
-          <CalendarDays :size="12" :style="{ color: tm(), flexShrink: 0 }" />
+          <CalendarDays :size="12" :style="{ color: 'var(--txt-muted)', flexShrink: 0 }" />
           {{ displayVal || placeholder }}
         </span>
         <span class="flex items-center gap-1">
-          <span v-if="modelValue" class="hover:opacity-70 transition-opacity cursor-pointer" :style="{ color: tm() }" @click="clear">
+          <span v-if="modelValue" class="hover:opacity-70 transition-opacity cursor-pointer" :style="{ color: 'var(--txt-muted)' }" @click="clear">
             <X :size="11" />
           </span>
           <ChevronDown
             :size="11"
             :style="{
-              color: tm(),
+              color: 'var(--txt-muted)',
               transform: open ? 'rotate(180deg)' : '',
               transition: 'transform 0.15s',
             }"
@@ -123,28 +116,28 @@ const panelBg = () => props.isDark ? 'rgba(12,6,26,0.62)' : 'rgba(252,250,255,0.
           :exit="{ opacity: 0, scale: 0.96, y: -6 }"
           :transition="{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }"
           :style="{
-            background: panelBg(),
+            background: 'var(--glass-modal-bg)',
             backdropFilter: 'blur(32px) saturate(200%)',
             WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.07)'}`,
-            boxShadow: `0 24px 60px ${isDark ? 'rgba(0,0,0,0.65)' : 'rgba(80,60,180,0.14)'}`,
+            border: '1px solid var(--glass-modal-border)',
+            boxShadow: 'var(--shadow-dropdown)',
             borderRadius: 16,
             padding: 12,
           }"
         >
           <div class="flex items-center justify-between mb-3">
-            <button class="w-7 h-7 rounded-xl flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer" :style="{ color: tm() }" @click="prevM">
+            <button class="w-7 h-7 rounded-xl flex items-center justify-center transition-colors cursor-pointer nav-btn" :style="{ color: 'var(--txt-muted)' }" @click="prevM">
               <ChevronLeft :size="13" />
             </button>
-            <span class="text-xs font-bold" :style="{ color: tp() }">
+            <span class="text-xs font-bold" :style="{ color: 'var(--txt-primary)' }">
               {{ new Date(vy, vm).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' }) }}
             </span>
-            <button class="w-7 h-7 rounded-xl flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer" :style="{ color: tm() }" @click="nextM">
+            <button class="w-7 h-7 rounded-xl flex items-center justify-center transition-colors cursor-pointer nav-btn" :style="{ color: 'var(--txt-muted)' }" @click="nextM">
               <ChevronRight :size="13" />
             </button>
           </div>
           <div class="grid grid-cols-7 mb-1">
-            <div v-for="d in ['日','一','二','三','四','五','六']" :key="d" class="text-center text-[9px] font-bold py-1" :style="{ color: ts() }">{{ d }}</div>
+            <div v-for="d in ['日','一','二','三','四','五','六']" :key="d" class="text-center text-[9px] font-bold py-1" :style="{ color: 'var(--txt-subtle)' }">{{ d }}</div>
           </div>
           <div class="grid grid-cols-7 gap-px">
             <button
@@ -153,8 +146,8 @@ const panelBg = () => props.isDark ? 'rgba(12,6,26,0.62)' : 'rgba(252,250,255,0.
               :disabled="!c.day"
               class="aspect-square flex items-center justify-center rounded-lg text-xs font-medium transition-all"
               :style="{
-                background: c.date === modelValue ? '#6366F1' : c.date === todayStr ? (isDark ? 'rgba(99,102,241,0.22)' : 'rgba(99,102,241,0.12)') : 'transparent',
-                color: c.date === modelValue ? '#fff' : c.date === todayStr ? '#818CF8' : !c.day ? 'transparent' : c.date < todayStr && c.date !== '' ? ts() : tp(),
+                background: c.date === modelValue ? 'var(--accent-indigo)' : c.date === todayStr ? 'var(--today-highlight)' : 'transparent',
+                color: c.date === modelValue ? 'var(--txt-on-color)' : c.date === todayStr ? 'var(--txt-accent)' : !c.day ? 'transparent' : c.date < todayStr && c.date !== '' ? 'var(--txt-subtle)' : 'var(--txt-primary)',
                 cursor: c.day ? 'pointer' : 'default',
                 fontWeight: c.date === modelValue || c.date === todayStr ? 700 : 500,
               }"
@@ -167,8 +160,8 @@ const panelBg = () => props.isDark ? 'rgba(12,6,26,0.62)' : 'rgba(252,250,255,0.
             v-if="modelValue !== todayStr"
             class="w-full mt-2 py-1.5 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer"
             :style="{
-              background: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
-              color: '#818CF8',
+              background: 'var(--accent-indigo-bg)',
+              color: 'var(--txt-accent)',
             }"
             @click="selectToday"
           >
@@ -179,3 +172,9 @@ const panelBg = () => props.isDark ? 'rgba(12,6,26,0.62)' : 'rgba(252,250,255,0.
     </PopoverPortal>
   </PopoverRoot>
 </template>
+
+<style scoped>
+.nav-btn:hover {
+  background: var(--ctrl-btn);
+}
+</style>

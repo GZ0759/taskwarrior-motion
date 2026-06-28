@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { Check, Play, Square } from '@lucide/vue'
 import { Motion } from 'motion-v'
-import { useTheme } from '@/composables/useTheme'
+
 import { useSound } from '@/composables/useSound'
 import { useTimeTracking } from '@/composables/useTimeTracking'
 import { getCardStyle } from '@/utils/card-styles'
@@ -24,7 +24,6 @@ const emit = defineEmits<{
   (e: 'timer', task: Task): void
 }>()
 
-const { isDark } = useTheme()
 const { playComplete } = useSound()
 const { activeTask, formattedTime, elapsedTime } = useTimeTracking()
 
@@ -66,6 +65,17 @@ function openTimer() {
 }
 </script>
 
+<style scoped>
+.check-circle:hover {
+  border-color: var(--txt-on-color);
+  background-color: var(--glass-panel-hover-bg);
+}
+
+.action-btn:hover {
+  background-color: var(--glass-panel-hover-bg);
+}
+</style>
+
 <template>
   <Motion
     :initial="{ opacity: 0, y: 14, scale: 0.97 }"
@@ -82,15 +92,18 @@ function openTimer() {
       :class="{ shaking }"
       :style="{
         background: style.gradient,
-        boxShadow: `0 5px 28px ${style.glow}, 0 1px 0 rgba(255,255,255,0.18) inset${selected ? ',0 0 0 2.5px rgba(255,255,255,0.65)' : ''}`,
-        border: '1px solid rgba(255,255,255,0.15)',
+        boxShadow: `0 5px 28px ${style.glow}, var(--glass-card-inset)${selected ? ',0 0 0 2.5px var(--glass-card-selected-ring)' : ''}`,
+        border: '1px solid var(--glass-card-border)',
       }"
       @click="openEdit"
     >
       <div class="flex items-center gap-3.5 px-4 py-3">
         <button
-          class="shrink-0 w-6 h-6 rounded-full border-2 border-white/45 flex items-center justify-center transition-all duration-150 hover:border-white hover:bg-white/20 focus:outline-none cursor-pointer"
-          :style="checked ? { backgroundColor: 'rgba(255,255,255,0.92)' } : {}"
+          class="shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-150 focus:outline-none cursor-pointer check-circle"
+          :style="{
+            borderColor: checked ? 'var(--txt-on-color)' : 'var(--glass-card-border)',
+            backgroundColor: checked ? 'var(--txt-on-color)' : 'transparent',
+          }"
           @click.stop="handleCheck"
         >
           <Check
@@ -111,12 +124,13 @@ function openTimer() {
           <span
             v-for="tag in task.tags.slice(0, 2)"
             :key="tag"
-            class="shrink-0 text-[10px] px-2 py-0.5 rounded-lg bg-white/15 text-white/80"
+            class="shrink-0 text-[10px] px-2 py-0.5 rounded-lg"
+            :style="{ background: 'var(--glass-card-tag-bg)', color: 'var(--glass-card-tag-text)' }"
           >{{ tag }}</span>
           <span
             v-if="task.tags.length > 2"
             class="shrink-0 text-[10px] px-2 py-0.5 rounded-lg"
-            :style="{ background: 'rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.60)' }"
+            :style="{ background: 'var(--glass-card-tag-bg)', color: 'var(--txt-muted)' }"
           >+{{ task.tags.length - 2 }}</span>
         </template>
 
@@ -139,13 +153,13 @@ function openTimer() {
         <span
           v-if="elapsed > 0"
           class="shrink-0 text-[10px] font-mono"
-          :style="{ color: 'rgba(255,255,255,0.80)' }"
+          :style="{ color: 'var(--glass-card-tag-text)' }"
         >{{ formattedTime }}</span>
 
         <button
           v-if="task.status === 'pending'"
-          class="shrink-0 p-1 rounded-lg hover:bg-white/20 transition-colors cursor-pointer"
-          :style="{ color: isTracking ? 'rgba(255,220,100,0.90)' : 'rgba(255,255,255,0.50)' }"
+          class="shrink-0 p-1 rounded-lg transition-colors cursor-pointer action-btn"
+          :style="{ color: isTracking ? 'var(--txt-accent)' : 'var(--txt-muted)' }"
           @click.stop="openTimer"
         >
           <Square v-if="isTracking" :size="12" fill="currentColor" />

@@ -48,8 +48,6 @@ function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') emit('close')
 }
 
-const tp = () => props.isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)'
-const ts = () => props.isDark ? 'rgba(255,255,255,0.22)' : 'rgba(15,10,40,0.22)'
 </script>
 
 <template>
@@ -63,7 +61,7 @@ const ts = () => props.isDark ? 'rgba(255,255,255,0.22)' : 'rgba(15,10,40,0.22)'
       ref="inputRef"
       v-model="value"
       class="w-full bg-transparent outline-none font-medium"
-      :style="{ color: tp(), fontSize: 22, lineHeight: 1.4, caretColor: '#818CF8' }"
+      :style="{ color: 'var(--txt-primary)', fontSize: 22, lineHeight: 1.4, caretColor: 'var(--caret-color)' }"
       :placeholder="config.placeholder"
       autocomplete="off"
       @keydown="handleKeydown"
@@ -71,8 +69,8 @@ const ts = () => props.isDark ? 'rgba(255,255,255,0.22)' : 'rgba(15,10,40,0.22)'
 
     <div class="flex items-center justify-between pt-2">
       <div class="flex items-center gap-4">
-        <span class="text-[11px]" :style="{ color: ts() }">⏎ 创建</span>
-        <span class="text-[11px]" :style="{ color: ts() }">Esc 取消</span>
+        <span class="text-[11px]" :style="{ color: 'var(--txt-subtle)' }">⏎ 创建</span>
+        <span class="text-[11px]" :style="{ color: 'var(--txt-subtle)' }">Esc 取消</span>
       </div>
       <AnimatePresence>
         <Motion
@@ -82,8 +80,8 @@ const ts = () => props.isDark ? 'rgba(255,255,255,0.22)' : 'rgba(15,10,40,0.22)'
           :exit="{ opacity: 0, x: 10, scale: 0.90 }"
           :transition="{ type: 'spring', stiffness: 400, damping: 28 }"
           tag="button"
-          class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
-          :style="{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', boxShadow: '0 4px 18px rgba(99,102,241,0.45)' }"
+          class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-opacity hover:opacity-90 cursor-pointer"
+          :style="{ color: 'var(--txt-on-color)', background: 'linear-gradient(135deg,var(--btn-primary-from),var(--btn-primary-to))', boxShadow: '0 4px 18px var(--btn-primary-shadow)' }"
           @click="submit"
         >
           {{ config.btn }}

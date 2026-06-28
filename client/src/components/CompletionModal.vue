@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { X, Check } from '@lucide/vue'
-import { Motion, AnimatePresence } from 'motion-v'
+import { Motion } from 'motion-v'
 import AchievementBadge from './AchievementBadge.vue'
 
 const props = defineProps<{
@@ -33,26 +33,17 @@ const stars = computed(() =>
   }))
 )
 
-const cardBg = computed(() =>
-  props.isDark
-    ? {
-        background: 'rgba(12,6,26,0.72)',
-        backdropFilter: 'blur(60px) saturate(240%)',
-        WebkitBackdropFilter: 'blur(60px) saturate(240%)',
-        boxShadow: '0 1.5px 0 rgba(255,255,255,0.12) inset,0 40px 80px rgba(0,0,0,0.70),0 0 80px rgba(99,102,241,0.18)',
-      }
-    : {
-        background: 'rgba(250,248,255,0.80)',
-        backdropFilter: 'blur(60px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(60px) saturate(200%)',
-        boxShadow: '0 1.5px 0 rgba(255,255,255,0.88) inset,0 32px 80px rgba(80,60,180,0.16),0 0 60px rgba(99,102,241,0.10)',
-      }
-)
+const cardBg = {
+  background: 'var(--glass-modal-bg)',
+  backdropFilter: 'blur(var(--glass-modal-blur)) saturate(var(--glass-modal-saturate))',
+  WebkitBackdropFilter: 'blur(var(--glass-modal-blur)) saturate(var(--glass-modal-saturate))',
+  boxShadow: 'var(--shadow-modal), var(--glass-modal-inset), 0 0 60px var(--shadow-modal-glow)',
+}
 
 const borderGrad = 'linear-gradient(135deg,#4ADE80,#22C55E,#06B6D4,#6366F1,#8B5CF6,#4ADE80)'
 
-const tp = () => props.isDark ? 'rgba(255,255,255,0.92)' : 'rgba(15,10,40,0.88)'
-const td = () => props.isDark ? 'rgba(255,255,255,0.85)' : 'rgba(15,10,40,0.82)'
+const tp = () => 'var(--txt-primary)'
+const td = () => 'var(--txt-primary)'
 </script>
 
 <template>
@@ -69,11 +60,11 @@ const td = () => props.isDark ? 'rgba(255,255,255,0.85)' : 'rgba(15,10,40,0.82)'
     >
       <div class="rounded-3xl overflow-hidden relative" :style="cardBg">
         <button
-          class="absolute top-4 right-4 z-20 w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors cursor-pointer"
-          :style="{ background: 'rgba(0,0,0,0.18)' }"
+          class="absolute top-4 right-4 z-20 w-7 h-7 rounded-full flex items-center justify-center transition-colors cursor-pointer"
+          :style="{ background: 'var(--glass-panel-hover-bg)' }"
           @click="emit('close')"
         >
-          <X :size="13" class="text-white/80" />
+          <X :size="13" :style="{ color: 'var(--txt-muted)' }" />
         </button>
 
         <div class="absolute left-1/2 top-[34%] pointer-events-none z-0">
@@ -100,7 +91,7 @@ const td = () => props.isDark ? 'rgba(255,255,255,0.85)' : 'rgba(15,10,40,0.82)'
               left: `calc(50% + ${s.x}px)`,
               top: `calc(50% + ${s.y}px)`,
               fontSize: `${s.size}px`,
-              color: 'rgba(255,255,200,0.88)',
+              color: 'var(--txt-success)',
             }"
           >✦</Motion>
         </div>
@@ -117,20 +108,20 @@ const td = () => props.isDark ? 'rgba(255,255,255,0.85)' : 'rgba(15,10,40,0.82)'
               class="text-[26px] font-black my-6"
               :style="{
                 color: tp(),
-                textShadow: isDark ? '0 2px 10px rgba(0,0,0,0.18)' : 'none',
+                textShadow: '0 2px 10px var(--shadow-modal-glow)',
               }"
             >我完成任务啦！</h2>
 
             <div
               class="rounded-2xl px-4 py-3 mb-5 flex items-center gap-3 text-left"
               :style="{
-                background: isDark ? 'rgba(74,222,128,0.12)' : 'rgba(34,197,94,0.08)',
-                border: '1px solid rgba(74,222,128,0.25)',
+                background: 'var(--glass-card-tag-bg)',
+                border: '1px solid var(--glass-card-border)',
               }"
             >
               <div
                 class="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                :style="{ background: 'linear-gradient(135deg,#4ADE80,#22C55E)' }"
+                :style="{ background: 'linear-gradient(135deg,var(--btn-success-from),var(--btn-success-to))' }"
               >
                 <Check :size="13" :stroke-width="3" class="text-white" />
               </div>
@@ -140,9 +131,9 @@ const td = () => props.isDark ? 'rgba(255,255,255,0.85)' : 'rgba(15,10,40,0.82)'
             <button
               class="w-full py-4 rounded-2xl text-sm font-black transition-opacity hover:opacity-90 cursor-pointer"
               :style="{
-                background: 'linear-gradient(135deg,#7C3AED,#6D28D9)',
-                color: '#fff',
-                boxShadow: '0 4px 22px rgba(124,58,237,0.45)',
+                background: 'linear-gradient(135deg,var(--btn-primary-from),var(--btn-primary-to))',
+                color: 'var(--txt-on-color)',
+                boxShadow: '0 4px 22px var(--btn-primary-shadow)',
               }"
               @click="emit('close')"
             >

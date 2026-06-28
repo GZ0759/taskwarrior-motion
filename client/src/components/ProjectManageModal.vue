@@ -19,9 +19,6 @@ const emit = defineEmits<{
   (e: 'delete', name: string): void
 }>()
 
-const tp = () => props.isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)'
-const tm = () => props.isDark ? 'rgba(255,255,255,0.42)' : 'rgba(15,10,40,0.46)'
-
 const pTasks = computed(() => props.tasks.filter(t => t.project === props.project))
 const pending = computed(() => pTasks.value.filter(t => t.status !== 'completed'))
 const done = computed(() => pTasks.value.filter(t => t.status === 'completed'))
@@ -53,7 +50,7 @@ function handleDelete() {
   >
     <div
       class="rounded-xl overflow-hidden h-2"
-      :style="{ background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)' }"
+      :style="{ background: 'var(--progress-bg)' }"
     >
       <Motion
         :initial="{ width: 0 }"
@@ -65,7 +62,7 @@ function handleDelete() {
     </div>
 
     <div v-if="pending.length > 0">
-      <p class="text-[10px] font-black uppercase tracking-widest mb-2" :style="{ color: tm() }">
+      <p class="text-[10px] font-black uppercase tracking-widest mb-2" :style="{ color: 'var(--txt-muted)' }">
         待办 ({{ pending.length }})
       </p>
       <div class="space-y-1">
@@ -73,19 +70,19 @@ function handleDelete() {
           v-for="t in pending"
           :key="t.uuid"
           class="flex items-center gap-2 px-3 py-2 rounded-xl"
-          :style="{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }"
+          :style="{ background: 'var(--glass-input-bg)' }"
         >
           <div
             class="w-3 h-3 rounded-full border-2 shrink-0"
-            :style="{ borderColor: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.20)' }"
+            :style="{ borderColor: 'var(--glass-input-border)' }"
           />
-          <span class="text-xs" :style="{ color: tp() }">{{ t.description }}</span>
+          <span class="text-xs" :style="{ color: 'var(--txt-primary)' }">{{ t.description }}</span>
         </div>
       </div>
     </div>
 
     <div v-if="done.length > 0">
-      <p class="text-[10px] font-black uppercase tracking-widest mb-2" :style="{ color: tm() }">
+      <p class="text-[10px] font-black uppercase tracking-widest mb-2" :style="{ color: 'var(--txt-muted)' }">
         已完成 ({{ done.length }})
       </p>
       <div class="space-y-1">
@@ -93,21 +90,21 @@ function handleDelete() {
           v-for="t in done.slice(0, 8)"
           :key="t.uuid"
           class="flex items-center gap-2 px-3 py-2 rounded-xl"
-          :style="{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }"
+          :style="{ background: 'var(--glass-input-bg)' }"
         >
-          <CircleCheckBig :size="12" :style="{ color: '#4ADE80', flexShrink: 0 }" />
-          <span class="text-xs line-through" :style="{ color: tm() }">{{ t.description }}</span>
+          <CircleCheckBig :size="12" :style="{ color: 'var(--txt-success)', flexShrink: 0 }" />
+          <span class="text-xs line-through" :style="{ color: 'var(--txt-muted)' }">{{ t.description }}</span>
         </div>
       </div>
     </div>
 
-    <div class="flex gap-2 pt-2" :style="{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}` }">
+    <div class="flex gap-2 pt-2" :style="{ borderTop: '1px solid var(--divider)' }">
       <button
-        class="px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors text-red-400 hover:bg-red-500/[0.12] cursor-pointer"
+        class="btn-danger px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer"
         @click="handleDelete"
       >删除</button>
       <button
-        class="flex-1 py-2.5 rounded-xl bg-indigo-500 text-white text-xs font-black hover:bg-indigo-600 transition-colors cursor-pointer"
+        class="btn-primary flex-1 py-2.5 rounded-xl text-xs font-black cursor-pointer"
         @click="emit('close')"
       >确定</button>
     </div>

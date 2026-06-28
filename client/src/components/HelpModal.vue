@@ -1,15 +1,9 @@
 <script setup lang="ts">
 import ModalShell from './ModalShell.vue'
 
-const props = defineProps<{
-  isDark: boolean
-}>()
-
 const emit = defineEmits<{
   (e: 'close'): void
 }>()
-
-const tp = () => props.isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)'
 
 const shortcuts = [
   { key: 'n', description: '新建任务' },
@@ -26,7 +20,6 @@ const shortcuts = [
 <template>
   <ModalShell
     title="键盘快捷键"
-    :is-dark="isDark"
     max-w="max-w-sm"
     @close="emit('close')"
   >
@@ -36,13 +29,13 @@ const shortcuts = [
         :key="shortcut.key"
         class="flex items-center justify-between"
       >
-        <span class="text-sm" :style="{ color: tp() }">{{ shortcut.description }}</span>
+        <span class="text-sm" :style="{ color: 'var(--txt-primary)' }">{{ shortcut.description }}</span>
         <kbd
           class="px-2.5 py-1 rounded-xl text-[11px] font-mono font-semibold"
           :style="{
-            background: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)',
-            color: tp(),
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'}`,
+            background: 'var(--glass-input-bg)',
+            color: 'var(--txt-primary)',
+            border: '1px solid var(--glass-input-border)',
           }"
         >{{ shortcut.key }}</kbd>
       </div>

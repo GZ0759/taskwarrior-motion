@@ -51,24 +51,25 @@ function handleToggle() {
         class="font-mono font-black tabular-nums"
         :style="{
           fontSize: 48,
-          color: isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)',
+          color: 'var(--txt-primary)',
         }"
       >{{ displayTime }}</span>
 
       <span
         class="text-xs font-semibold"
-        :style="{ color: isDark ? 'rgba(255,255,255,0.42)' : 'rgba(15,10,40,0.46)' }"
+        :style="{ color: 'var(--txt-muted)' }"
       >{{ statusText }}</span>
 
       <button
-        class="w-full py-3 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
+        class="w-full py-3 rounded-xl text-sm font-bold transition-opacity hover:opacity-90 cursor-pointer"
         :style="{
+          color: 'var(--txt-on-color)',
           background: isTracking
-            ? 'linear-gradient(135deg,#F59E0B,#D97706)'
-            : 'linear-gradient(135deg,#6366F1,#8B5CF6)',
+            ? 'linear-gradient(135deg, var(--btn-warning-from), var(--btn-warning-to))'
+            : 'linear-gradient(135deg, var(--btn-primary-from), var(--btn-primary-to))',
           boxShadow: isTracking
-            ? '0 4px 18px rgba(245,158,11,0.40)'
-            : '0 4px 18px rgba(99,102,241,0.45)',
+            ? '0 4px 18px var(--btn-warning-shadow)'
+            : '0 4px 18px var(--btn-primary-shadow)',
         }"
         @click="handleToggle"
       >{{ isTracking ? '暂停' : '开始' }}</button>

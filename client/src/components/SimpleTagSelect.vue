@@ -4,7 +4,6 @@ import { Check } from '@lucide/vue'
 const props = defineProps<{
   selected: string[]
   options: string[]
-  isDark: boolean
 }>()
 
 const emit = defineEmits<{
@@ -26,9 +25,9 @@ function toggle(tag: string) {
       :key="tag"
       class="text-[10px] px-2.5 py-1 rounded-full font-semibold transition-all cursor-pointer"
       :style="{
-        background: selected.includes(tag) ? (isDark ? '#5B52C8' : '#6366F1') : (isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)'),
-        color: selected.includes(tag) ? '#ffffff' : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(15,10,40,0.48)'),
-        border: `1px solid ${selected.includes(tag) ? (isDark ? 'rgba(165,148,255,0.35)' : 'rgba(99,102,241,0.25)') : (isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)')}`,
+        background: selected.includes(tag) ? 'var(--accent-indigo)' : 'var(--glass-input-bg)',
+        color: selected.includes(tag) ? 'var(--txt-on-color)' : 'var(--txt-muted)',
+        border: `1px solid ${selected.includes(tag) ? 'var(--accent-indigo-border)' : 'var(--glass-input-border)'}`,
       }"
       @click="toggle(tag)"
     >

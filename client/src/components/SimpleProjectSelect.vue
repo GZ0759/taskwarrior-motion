@@ -7,7 +7,6 @@ import { Motion } from 'motion-v'
 const props = defineProps<{
   modelValue: string
   options: string[]
-  isDark: boolean
 }>()
 
 const emit = defineEmits<{
@@ -21,17 +20,10 @@ function select(v: string) {
   open.value = false
 }
 
-const tp = () => props.isDark ? 'rgba(255,255,255,0.90)' : 'rgba(15,10,40,0.88)'
-const tm = () => props.isDark ? 'rgba(255,255,255,0.40)' : 'rgba(15,10,40,0.42)'
-const fieldBg = () => props.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)'
-const dropBg = () => props.isDark ? 'rgba(12,6,26,0.62)' : 'rgba(252,250,255,0.74)'
-
 function handleHover(e: MouseEvent, enter: boolean, sel: boolean) {
   const el = e.currentTarget as HTMLElement
   if (sel) return
-  el.style.background = enter
-    ? (props.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.03)')
-    : 'transparent'
+  el.style.background = enter ? 'var(--glass-panel-hover-bg)' : 'transparent'
 }
 </script>
 
@@ -41,16 +33,16 @@ function handleHover(e: MouseEvent, enter: boolean, sel: boolean) {
       <button
         class="w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-medium transition-all cursor-pointer"
         :style="{
-          background: fieldBg(),
-          color: modelValue ? tp() : tm(),
-          border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+          background: 'var(--glass-input-bg)',
+          color: modelValue ? 'var(--txt-primary)' : 'var(--txt-muted)',
+          border: '1px solid var(--glass-input-border)',
         }"
       >
         <span>{{ modelValue || '无项目' }}</span>
         <ChevronDown
           :size="11"
           :style="{
-            color: tm(),
+            color: 'var(--txt-muted)',
             transform: open ? 'rotate(180deg)' : '',
             transition: 'transform 0.15s',
           }"
@@ -72,9 +64,9 @@ function handleHover(e: MouseEvent, enter: boolean, sel: boolean) {
           :style="{
             backdropFilter: 'blur(32px) saturate(200%)',
             WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-            background: dropBg(),
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'}`,
-            boxShadow: `0 20px 50px ${isDark ? 'rgba(0,0,0,0.60)' : 'rgba(80,60,180,0.18)'}`,
+            background: 'var(--glass-modal-bg)',
+            border: '1px solid var(--glass-modal-border)',
+            boxShadow: 'var(--shadow-dropdown)',
             borderRadius: 16,
             overflow: 'hidden',
           }"
@@ -84,15 +76,15 @@ function handleHover(e: MouseEvent, enter: boolean, sel: boolean) {
             :key="opt"
             class="w-full text-left px-4 py-2.5 text-xs font-medium flex items-center justify-between cursor-pointer"
             :style="{
-              color: (i === 0 ? '' : opt) === modelValue ? (isDark ? '#A5B4FC' : '#6366F1') : tp(),
-              background: (i === 0 ? '' : opt) === modelValue ? (isDark ? 'rgba(99,102,241,0.14)' : 'rgba(99,102,241,0.07)') : 'transparent',
+              color: (i === 0 ? '' : opt) === modelValue ? 'var(--accent-indigo-light)' : 'var(--txt-primary)',
+              background: (i === 0 ? '' : opt) === modelValue ? 'var(--accent-indigo-bg)' : 'transparent',
             }"
             @click="select(i === 0 ? '' : opt)"
             @mouseenter="handleHover($event, true, (i === 0 ? '' : opt) === modelValue)"
             @mouseleave="handleHover($event, false, (i === 0 ? '' : opt) === modelValue)"
           >
             {{ opt }}
-            <Check v-if="(i === 0 ? '' : opt) === modelValue" :size="10" :stroke-width="3" :style="{ color: isDark ? '#A5B4FC' : '#6366F1' }" />
+            <Check v-if="(i === 0 ? '' : opt) === modelValue" :size="10" :stroke-width="3" :style="{ color: 'var(--accent-indigo-light)' }" />
           </button>
         </Motion>
       </PopoverContent>
