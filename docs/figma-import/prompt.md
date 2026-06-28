@@ -1,12 +1,12 @@
-# Figma Make AI 提示词（完整版）
-
-> 复制以下内容发给 Figma Make。附件：截图 + `design-tokens.md`
-
----
+# taskwarrior-motion 设计稿
 
 ## 项目概述
 
 taskwarrior-motion 是一个本地任务管理工具，技术栈：Vue 3 + Rust + Tailwind CSS。当前代码已实现完毕，需要基于实际实现更新 Figma 设计稿。
+
+附件：
+- `screens.md` — 所有页面的视觉描述（布局图 + 元素尺寸 + 颜色值）
+- `design-tokens.md` — 精确视觉数值
 
 ## 整体布局
 
